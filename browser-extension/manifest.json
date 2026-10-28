@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "Velotrap — Video & Medya İndirici",
+  "short_name": "Velotrap",
+  "version": "3.1.11",
+  "description": "Tüm web sitelerindeki videoları anında yakalar, videonun üzerinde 'Videoyu İndir' (Kalite Seçimi + MP3 Dönüştürücü) menüsünü gösterir.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "webRequest",
+    "cookies",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:46890/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Velotrap — Yakalanan Videolar & MP3 Dönüştürücü",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "page-hook.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

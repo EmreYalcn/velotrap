@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Velotrap Chrome Eklentisi</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+      }
+      body {
+        width: 400px;
+        min-height: 460px;
+        background: #0b0f19;
+        color: #f1f5f9;
+        font-size: 12.5px;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        padding: 12px 14px;
+        background: linear-gradient(90deg, #0f172a, #1e1b4b);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 13.5px;
+      }
+      .logo-img {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        object-fit: contain;
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+      }
+      .status-pill {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 99px;
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+      }
+      .status-pill.offline {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+      .content {
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex: 1;
+      }
+      .card {
+        background: #111827;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card-title {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .page-title {
+        font-weight: 600;
+        font-size: 12.5px;
+        color: #f8fafc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .btn-primary {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: none;
+        background: linear-gradient(135deg, #2563eb, #6d28d9);
+        color: #fff;
+        font-weight: 600;
+        font-size: 12.5px;
+        cursor: pointer;
+      }
+      .btn-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+      }
+      .btn-mp3 {
+        padding: 8px 11px;
+        border-radius: 6px;
+        border: 1px solid rgba(236, 72, 153, 0.45);
+        background: linear-gradient(135deg, #db2777, #9333ea);
+        color: #fff;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-mp3:hover {
+        filter: brightness(1.1);
+      }
+      .url-input {
+        width: 100%;
+        background: #080c14;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        color: #f8fafc;
+        padding: 7px 9px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        outline: none;
+      }
+      .url-input:focus {
+        border-color: #3b82f6;
+      }
+      .mode-tabs {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        background: #080c14;
+        padding: 4px;
+        border-radius: 6px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+      }
+      .mode-tabs.visible {
+        display: grid;
+      }
+      .mode-tab {
+        padding: 5px 8px;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #94a3b8;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .mode-tab.active-video {
+        background: rgba(37, 99, 235, 0.28);
+        border-color: rgba(59, 130, 246, 0.55);
+        color: #60a5fa;
+      }
+      .mode-tab.active-audio {
+        background: rgba(219, 39, 119, 0.28);
+        border-color: rgba(236, 72, 153, 0.55);
+        color: #f472b6;
+      }
+      .formats-box {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        max-height: 210px;
+        overflow-y: auto;
+      }
+      .fmt-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 7px 9px;
+        border-radius: 6px;
+        background: #162033;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        color: #f1f5f9;
+        cursor: pointer;
+        text-align: left;
+      }
+      .fmt-row:hover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.18);
+      }
+      .fmt-row.best {
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.16), rgba(37, 99, 235, 0.14));
+        border-color: rgba(16, 185, 129, 0.4);
+      }
+      .badge {
+        background: rgba(99, 102, 241, 0.22);
+        color: #a5b4fc;
+        font-family: monospace;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .badge.audio {
+        background: rgba(236, 72, 153, 0.2);
+        color: #f472b6;
+      }
+      .badge.best {
+        background: rgba(16, 185, 129, 0.25);
+        color: #34d399;
+      }
+      .fmt-mid {
+        flex: 1;
+        overflow: hidden;
+      }
+      .fmt-mid strong {
+        display: block;
+        font-size: 12px;
+      }
+      .fmt-mid span {
+        font-size: 10.5px;
+        color: #94a3b8;
+      }
+      .fmt-right {
+        font-family: monospace;
+        font-size: 11px;
+        color: #38bdf8;
+      }
+      .muted {
+        color: #64748b;
+        font-size: 11.5px;
+        text-align: center;
+        padding: 12px 6px;
+      }
+      .footer {
+        padding: 9px 14px;
+        border-top: 1px solid rgba(148, 163, 184, 0.14);
+        background: #080c14;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: #64748b;
+      }
+      .link-btn {
+        background: none;
+        border: none;
+        color: #60a5fa;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 11.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="brand">
+        <img src="icons/icon32.png" class="logo-img" alt="Velotrap" />
+        <span id="popup-brand-title">Velotrap Video & MP3 İndirici</span>
+        <span id="ext-version-badge" style="font-size: 10px; opacity: 0.6; font-weight: normal; margin-left: 4px;"></span>
+      </div>
+      <span id="conn-status" class="status-pill">Kontrol ediliyor...</span>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-title">
+          <span id="card-title-active">AKTİF SEKME VİDEO & MP3 ANALİZİ</span>
+          <span id="stream-count">0 Bağlantı</span>
+        </div>
+        <div id="tab-title" class="page-title">Bağlantılar</div>
+        <input
+          id="custom-url-input"
+          type="text"
+          class="url-input"
+          placeholder="Sayfa linki veya dönüştürülecek YouTube/X linki..."
+        />
+        <div class="btn-row">
+          <button id="analyze-btn" class="btn-primary">
+            ⚡ Kaliteleri Listele
+          </button>
+          <button id="quick-mp3-btn" class="btn-mp3" title="Linki doğrudan 320kbps MP3 olarak indir">
+            🎵 Direkt MP3 İndir
+          </button>
+        </div>
+        <div id="mode-tabs" class="mode-tabs">
+          <button id="tab-video" class="mode-tab active-video">🎬 Video Olarak İndir</button>
+          <button id="tab-audio" class="mode-tab">🎵 MP3 / Sese Çevir</button>
+        </div>
+        <div id="formats-container" class="formats-box"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span id="card-title-sniffed">AĞDAN YAKALANAN MEDYA BAĞLANTILARI (.M3U8 / .MP4)</span>
+        </div>
+        <div id="sniffed-container" class="formats-box">
+          <div class="muted">Sayfada video oynatıldığında akışlar burada görünür.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span id="footer-engine-text">16x Çoklu Parça & FFmpeg MP3 Motoru</span>
+      <button id="open-idm-btn" class="link-btn">Velotrap Masaüstünü Aç ↗</button>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
