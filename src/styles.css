@@ -3344,33 +3344,34 @@ html,
 .extension-square-card {
   flex-shrink: 0;
   height: auto;
-  min-height: 72px;
+  min-height: 96px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   text-align: left;
-  padding: 14px 18px;
-  gap: 14px;
-  border-radius: 16px;
+  padding: 18px 22px;
+  gap: 18px;
+  border-radius: 18px;
 }
 
 .ext-square-icon-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 .ext-square-title {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
+  margin-bottom: 4px;
 }
 
 .ext-status-capsule {
@@ -3410,12 +3411,12 @@ html,
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(6, 182, 212, 0.35));
   border: 1px solid rgba(56, 189, 248, 0.45);
   color: #ffffff;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 8px 18px;
-  border-radius: 10px;
+  padding: 9px 20px;
+  border-radius: 12px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
