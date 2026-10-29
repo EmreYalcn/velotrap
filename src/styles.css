@@ -2925,7 +2925,7 @@ html,
   flex: 1;
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1.4fr 1fr;
   gap: 16px;
   padding: 18px 20px 10px 20px;
   overflow: hidden;
@@ -3329,24 +3329,24 @@ html,
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px;
-  gap: 10px;
+  padding: 12px 14px;
+  gap: 7px;
 }
 
 .ext-square-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .ext-square-title {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #ffffff;
 }
@@ -3384,18 +3384,18 @@ html,
 .liquid-btn-ext-install {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.4), rgba(6, 182, 212, 0.35));
   border: 1px solid rgba(56, 189, 248, 0.45);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 8px 20px;
-  border-radius: 12px;
+  padding: 6px 16px;
+  border-radius: 9px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .liquid-btn-ext-install:hover {
