@@ -541,7 +541,7 @@ export function App() {
                 </div>
                 <div className="radar-live-tag">
                   <span className="live-pulse-dot" />
-                  <span>{sniffedItems.length > 0 ? `${sniffedItems.length} Canlı Akış` : 'Radar Aktif'}</span>
+                  <span>{sniffedItems.length > 0 ? (isEn ? `${sniffedItems.length} Live Streams` : `${sniffedItems.length} Canlı Akış`) : (isEn ? 'Radar Active' : 'Radar Aktif')}</span>
                 </div>
               </div>
 
@@ -549,7 +549,7 @@ export function App() {
               <div className="sniffer-items-list">
                 {sniffedItems.length > 0 && (
                   <div className="snif-stream-group">
-                    <div className="snif-sub-label">YAKALANAN CANLI AKIŞLAR</div>
+                    <div className="snif-sub-label">{isEn ? "CAPTURED LIVE STREAMS" : "YAKALANAN CANLI AKIŞLAR"}</div>
                     {sniffedItems.slice(0, 3).map((sItem) => (
                       <div key={sItem.id} className="snif-row-tile">
                         <div className="snif-tile-icon">
@@ -563,7 +563,7 @@ export function App() {
                         </div>
                         <div className="snif-tile-text">
                           <div className="snif-name" title={sItem.pageTitle}>
-                            {sItem.pageTitle || 'Canlı Medya Akışı'}
+                            {sItem.pageTitle || (isEn ? 'Live Media Stream' : 'Canlı Medya Akışı')}
                           </div>
                           <div className="snif-spec">
                             {sItem.ext?.toUpperCase() || 'VIDEO'} • {sItem.resolution || (sItem.sizeBytes ? formatBytes(sItem.sizeBytes, lang) : 'Stream')}
@@ -591,14 +591,14 @@ export function App() {
                 )}
 
                 <div className="snif-stream-group">
-                  <div className="snif-sub-label">DESTEKLENEN PLATFORMLAR</div>
+                  <div className="snif-sub-label">{isEn ? "SUPPORTED PLATFORMS" : "DESTEKLENEN PLATFORMLAR"}</div>
                   
                   {/* 1. YouTube */}
                   <div className="snif-row-tile">
                     <div className="snif-tile-icon badge-yt">YT</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">YouTube</div>
-                      <div className="snif-spec">4K 60fps • HDR • Shorts • Otomatik Token</div>
+                      <div className="snif-spec">{isEn ? "4K 60fps • HDR • Shorts • Auto Token" : "4K 60fps • HDR • Shorts • Otomatik Token"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -616,7 +616,7 @@ export function App() {
                     <div className="snif-tile-icon badge-ig">IG</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">Instagram</div>
-                      <div className="snif-spec">Reels • Hikayeler • Gönderiler • 1080p</div>
+                      <div className="snif-spec">{isEn ? "Reels • Stories • Posts • 1080p" : "Reels • Hikayeler • Gönderiler • 1080p"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -634,7 +634,7 @@ export function App() {
                     <div className="snif-tile-icon badge-tt">TT</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">TikTok</div>
-                      <div className="snif-spec">Filigransız HD • Ses Parçaları</div>
+                      <div className="snif-spec">{isEn ? "Watermark-Free HD • Audio Tracks" : "Filigransız HD • Ses Parçaları"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -652,7 +652,7 @@ export function App() {
                     <div className="snif-tile-icon badge-x">𝕏</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">Twitter / 𝕏</div>
-                      <div className="snif-spec">Maksimum Çözünürlük • GIF & Video</div>
+                      <div className="snif-spec">{isEn ? "Max Resolution • GIF & Video" : "Maksimum Çözünürlük • GIF & Video"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -670,7 +670,7 @@ export function App() {
                     <div className="snif-tile-icon badge-sc">SC</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">SoundCloud</div>
-                      <div className="snif-spec">320kbps MP3 • Orijinal FLAC / WAV</div>
+                      <div className="snif-spec">{isEn ? "320kbps MP3 • Lossless FLAC / WAV" : "320kbps MP3 • Orijinal FLAC / WAV"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -688,7 +688,7 @@ export function App() {
                     <div className="snif-tile-icon badge-fb">FB</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">Facebook</div>
-                      <div className="snif-spec">Watch Videoları • Reels • 1080p</div>
+                      <div className="snif-spec">{isEn ? "Watch Videos • Reels • 1080p" : "Watch Videoları • Reels • 1080p"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -706,7 +706,7 @@ export function App() {
                     <div className="snif-tile-icon badge-tw">TW</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">Twitch</div>
-                      <div className="snif-spec">Klipler • VOD Geçmiş Yayınlar 1080p60</div>
+                      <div className="snif-spec">{isEn ? "Clips • Past Broadcasts 1080p60" : "Klipler • VOD Geçmiş Yayınlar 1080p60"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -724,7 +724,7 @@ export function App() {
                     <div className="snif-tile-icon badge-vm">VM</div>
                     <div className="snif-tile-text">
                       <div className="snif-name">Vimeo</div>
-                      <div className="snif-spec">4K / 2K Pro Medya Akışları</div>
+                      <div className="snif-spec">{isEn ? "4K / 2K Pro Media Streams" : "4K / 2K Pro Medya Akışları"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -741,8 +741,8 @@ export function App() {
                   <div className="snif-row-tile">
                     <div className="snif-tile-icon badge-hls">HLS</div>
                     <div className="snif-tile-text">
-                      <div className="snif-name">Tüm Web Siteleri (HLS / m3u8)</div>
-                      <div className="snif-spec">Dizi / Film / Canlı Yayın Segment Birleştirici</div>
+                      <div className="snif-name">{isEn ? "All Web Streams (HLS / m3u8)" : "Tüm Web Siteleri (HLS / m3u8)"}</div>
+                      <div className="snif-spec">{isEn ? "Series / Movie Segment Merger" : "Dizi / Film / Canlı Yayın Segment Birleştirici"}</div>
                     </div>
                     <button
                       className="liquid-btn-grab"
@@ -879,8 +879,8 @@ export function App() {
                 <span className="status-dot" />
                 <span>
                   {extensionStatus.isInstalled
-                    ? (isEn ? 'KURULU' : 'KURULU')
-                    : (isEn ? 'KURULU DEĞİL' : 'KURULU DEĞİL')}
+                    ? (isEn ? 'INSTALLED' : 'KURULU')
+                    : (isEn ? 'NOT INSTALLED' : 'KURULU DEĞİL')}
                 </span>
               </div>
 
@@ -889,7 +889,7 @@ export function App() {
                 onClick={handleStartExtensionInstall}
               >
                 <Zap size={13} />
-                <span>{extensionStatus.isInstalled ? (isEn ? 'Yeniden Kur' : 'Yeniden Kur') : (isEn ? 'Eklentiyi Kur' : 'Eklentiyi Kur')}</span>
+                <span>{extensionStatus.isInstalled ? (isEn ? 'Reinstall' : 'Yeniden Kur') : (isEn ? 'Install Extension' : 'Eklentiyi Kur')}</span>
               </button>
             </div>
           </div>
@@ -901,7 +901,7 @@ export function App() {
                 <span className={`pulse-dot ${activeDownloads.length > 0 ? 'active' : ''}`} />
                 <span>
                   {activeDownloads.length > 0
-                    ? `${activeDownloads.length} İndirme Aktif`
+                    ? `${activeDownloads.length} ${isEn ? 'Active Downloads' : 'İndirme Aktif'}`
                     : (isEn ? 'Ready' : 'Hazır')}
                 </span>
               </div>
