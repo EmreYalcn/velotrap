@@ -3582,3 +3582,185 @@ html,
 .liquid-files-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(56, 189, 248, 0.5);
 }
+
+/* ==========================================================================
+   Pitch Dark & Light Theme Modes + Sliding Toggle Switch
+   ========================================================================== */
+
+/* 1. Even Deeper / Darker Pitch Black Theme (Default) */
+.liquid-glass-theme.theme-pitch-dark {
+  background: #010206 !important;
+}
+
+.liquid-glass-theme.theme-pitch-dark .liquid-canvas-bg {
+  background: 
+    radial-gradient(ellipse at 15% 20%, rgba(29, 78, 216, 0.22) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(13, 148, 136, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(67, 56, 202, 0.12) 0%, transparent 55%),
+    #010206;
+}
+
+.liquid-glass-theme.theme-pitch-dark .liquid-window {
+  background: rgba(5, 8, 18, 0.78);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.liquid-glass-theme.theme-pitch-dark .liquid-sidebar {
+  background: rgba(6, 10, 22, 0.85);
+  border-right-color: rgba(255, 255, 255, 0.06);
+}
+
+.liquid-glass-theme.theme-pitch-dark .liquid-card,
+.liquid-glass-theme.theme-pitch-dark .liquid-strip-card {
+  background: rgba(8, 12, 26, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.liquid-glass-theme.theme-pitch-dark .liquid-bottom-bar {
+  background: rgba(4, 7, 16, 0.88);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.liquid-glass-theme.theme-pitch-dark .strip-input-bar {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 2. Apple Liquid Light Theme */
+.liquid-glass-theme.theme-liquid-light {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-canvas-bg {
+  background: 
+    radial-gradient(ellipse at 15% 20%, rgba(56, 189, 248, 0.22) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(129, 140, 248, 0.2) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.15) 0%, transparent 55%),
+    #f8fafc;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-window {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.08);
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-sidebar {
+  background: rgba(248, 250, 252, 0.82);
+  border-right-color: rgba(0, 0, 0, 0.06);
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-brand-title,
+.liquid-glass-theme.theme-liquid-light .strip-title,
+.liquid-glass-theme.theme-liquid-light .header-left h3,
+.liquid-glass-theme.theme-liquid-light .file-row-name,
+.liquid-glass-theme.theme-liquid-light .ext-square-title,
+.liquid-glass-theme.theme-liquid-light .snif-name {
+  color: #0f172a !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-card,
+.liquid-glass-theme.theme-liquid-light .liquid-strip-card {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.liquid-glass-theme.theme-liquid-light .strip-input-bar {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.liquid-glass-theme.theme-liquid-light .strip-input-field {
+  color: #0f172a !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .strip-desc,
+.liquid-glass-theme.theme-liquid-light .snif-spec,
+.liquid-glass-theme.theme-liquid-light .file-row-sub,
+.liquid-glass-theme.theme-liquid-light .liquid-nav-item {
+  color: #64748b !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-nav-item.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(6, 182, 212, 0.15));
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #1e40af !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-bottom-bar {
+  background: rgba(255, 255, 255, 0.88);
+  border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+.liquid-glass-theme.theme-liquid-light .bottom-status-pill,
+.liquid-glass-theme.theme-liquid-light .liquid-glass-pill,
+.liquid-glass-theme.theme-liquid-light .liquid-icon-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #334155 !important;
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-file-row,
+.liquid-glass-theme.theme-liquid-light .snif-row-tile {
+  background: rgba(0, 0, 0, 0.025);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+.liquid-glass-theme.theme-liquid-light .liquid-file-row:hover,
+.liquid-glass-theme.theme-liquid-light .snif-row-tile:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 3. Sliding Theme Switcher Track & Thumb (Apple Style) */
+.liquid-theme-switch-track {
+  width: 44px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 2px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.theme-liquid-light .liquid-theme-switch-track {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.liquid-theme-switch-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.liquid-theme-switch-thumb.thumb-dark {
+  transform: translateX(0px);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #38bdf8;
+}
+
+.liquid-theme-switch-thumb.thumb-light {
+  transform: translateX(20px);
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  border: 1px solid #f59e0b;
+  color: #ffffff;
+}
+
+.theme-thumb-icon {
+  pointer-events: none;
+}

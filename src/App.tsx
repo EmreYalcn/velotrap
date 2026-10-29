@@ -21,6 +21,8 @@ import {
   Scissors,
   Search,
   Settings,
+  Sun,
+  Moon,
   Sparkles,
   Trash2,
   X,
@@ -69,6 +71,18 @@ export function App() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'video' | 'music'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unfinished' | 'finished'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('velotrap_dark_mode');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      localStorage.setItem('velotrap_dark_mode', String(next));
+      return next;
+    });
+  };
   
   // Dedicated input states for Video & MP3 cards
   const [videoUrlInput, setVideoUrlInput] = useState('');
@@ -293,7 +307,7 @@ export function App() {
   };
 
   return (
-    <div className="idm-app-shell liquid-glass-theme">
+    <div className={`idm-app-shell liquid-glass-theme ${isDarkMode ? "theme-pitch-dark" : "theme-liquid-light"}`}>
       {/* Dynamic Liquid Glass Shimmer Canvas */}
       <div className="liquid-canvas-bg" />
 
@@ -911,6 +925,17 @@ export function App() {
                 <span className="speed-text">
                   {totalActiveSpeed > 0 ? formatSpeed(totalActiveSpeed, lang) : '0.0 KB/s'}
                 </span>
+              </div>
+
+              {/* Sliding Theme Switcher */}
+              <div
+                className="liquid-theme-switch-track"
+                onClick={toggleTheme}
+                title={isDarkMode ? (isEn ? 'Switch to Light Mode' : 'Açık Temaya Geç') : (isEn ? 'Switch to Dark Mode' : 'Koyu Temaya Geç')}
+              >
+                <div className={`liquid-theme-switch-thumb ${isDarkMode ? 'thumb-dark' : 'thumb-light'}`}>
+                  {isDarkMode ? <Moon size={11} className="theme-thumb-icon" /> : <Sun size={11} className="theme-thumb-icon" />}
+                </div>
               </div>
 
               <button
