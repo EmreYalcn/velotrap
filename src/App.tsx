@@ -141,11 +141,17 @@ export function App() {
         const res = await fetch('http://127.0.0.1:46890/api/status');
         if (res.ok) {
           const data = await res.json();
+          const extObj = data.extension || {};
+          const isInst = Boolean(
+            extObj.isInstalled ||
+            data.extensionInstalled ||
+            (extObj.lastSeenAt && Date.now() - extObj.lastSeenAt < 60000)
+          );
           setExtensionStatus({
-            isInstalled: data.extensionInstalled || false,
-            version: data.extensionVersion || '1.2.0',
-            lastSeenAt: data.lastExtensionPing || Date.now(),
-            extensionPath: data.extensionPath || '',
+            isInstalled: isInst,
+            version: extObj.version || data.extensionVersion || '1.2.0',
+            lastSeenAt: extObj.lastSeenAt || data.lastExtensionPing || Date.now(),
+            extensionPath: extObj.extensionPath || data.extensionPath || '',
           });
         }
       } catch {}
