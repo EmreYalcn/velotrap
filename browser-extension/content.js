@@ -144,6 +144,10 @@
       statusUpdated: '✓ Boyutlar Güncellendi',
       tabVideo: '🎬 Video Kaliteleri',
       tabAudio: '🎵 MP3 / Ses İndir',
+      collapseWidget: 'Kutuyu Küçült / Gizle',
+      expandWidget: 'Velotrap İndiriciyi Aç',
+      dragHandle: 'Taşımak için basılı tutup sürükleyin (Sıfırlamak için çift tıklayın)',
+      closeMenu: 'Menüyü Kapat',
       connSpeed: 'Bağlantılar:',
       engineFooter: 'Velotrap Evrensel Motor',
       openApp: "Velotrap'ı Aç ↗",
@@ -185,6 +189,10 @@
       statusUpdated: '✓ Sizes Updated',
       tabVideo: '🎬 Video Qualities',
       tabAudio: '🎵 Download MP3 / Audio',
+      collapseWidget: 'Minimize / Collapse Box',
+      expandWidget: 'Expand Velotrap Downloader',
+      dragHandle: 'Click and drag to move (Double-click to reset)',
+      closeMenu: 'Close Menu',
       connSpeed: 'Links:',
       engineFooter: 'Velotrap Universal Engine',
       openApp: 'Open Velotrap ↗',
@@ -360,10 +368,18 @@
       align-items: flex-end;
       user-select: none;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
+      transition: filter 0.15s ease;
     }
 
     .idm-widget.visible {
       display: flex;
+    }
+
+    .idm-widget.dragging {
+      opacity: 0.95;
+      cursor: grabbing !important;
+      transition: none !important;
+      filter: drop-shadow(0 12px 30px rgba(59, 130, 246, 0.45));
     }
 
     .idm-bar {
@@ -374,6 +390,151 @@
       border-radius: 8px;
       overflow: hidden;
       backdrop-filter: blur(10px);
+    }
+
+    .idm-drag-handle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 7px;
+      height: 31px;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: grab;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.04);
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .idm-drag-handle:hover {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .idm-drag-handle:active,
+    .idm-widget.dragging .idm-drag-handle {
+      cursor: grabbing !important;
+    }
+
+    .idm-collapse-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 25px;
+      height: 31px;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.5);
+      border: none;
+      border-left: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .idm-collapse-btn:hover {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.22);
+    }
+
+    .idm-mini-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+      border: 1px solid rgba(99, 102, 241, 0.65);
+      border-radius: 9999px;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+      user-select: none;
+    }
+
+    .idm-mini-pill:hover {
+      border-color: #38bdf8;
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+    }
+
+    .idm-mini-drag {
+      display: inline-flex;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: grab;
+      margin-right: 1px;
+    }
+
+    .idm-mini-drag:hover {
+      color: #38bdf8;
+    }
+
+    .idm-mini-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border-radius: 50%;
+      font-size: 10px;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    }
+
+    .idm-mini-label {
+      letter-spacing: 0.3px;
+      color: #f1f5f9;
+    }
+
+    .idm-mini-expand-icon {
+      font-size: 10px;
+      color: #38bdf8;
+      opacity: 0.8;
+      margin-left: 2px;
+    }
+
+    .idm-widget.collapsed .idm-bar,
+    .idm-widget.collapsed .idm-dropdown {
+      display: none !important;
+    }
+
+    .idm-widget.collapsed .idm-mini-pill {
+      display: inline-flex !important;
+    }
+
+    .idm-dd-drag-indicator {
+      display: inline-flex;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.35);
+      cursor: grab;
+      padding: 0 4px;
+    }
+
+    .idm-dd-drag-indicator:hover {
+      color: #38bdf8;
+    }
+
+    .idm-dd-close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      color: #94a3b8;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .idm-dd-close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
     }
 
     .idm-main-btn {
@@ -681,21 +842,65 @@
   const widget = document.createElement('div');
   widget.className = 'idm-widget';
   widget.innerHTML = `
-    <div class="idm-bar">
-      <button class="idm-main-btn" id="idm-trigger-btn" title="Kalite Seçerek Video veya MP3 İndir">
+    <!-- Full Download Bar -->
+    <div class="idm-bar" id="idm-bar">
+      <div class="idm-drag-handle" id="idm-drag-handle" title="${t('dragHandle')}">
+        <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+          <circle cx="2" cy="2" r="1.3"/>
+          <circle cx="6" cy="2" r="1.3"/>
+          <circle cx="2" cy="6" r="1.3"/>
+          <circle cx="6" cy="6" r="1.3"/>
+          <circle cx="2" cy="10" r="1.3"/>
+          <circle cx="6" cy="10" r="1.3"/>
+        </svg>
+      </div>
+      <button class="idm-main-btn" id="idm-trigger-btn" title="${t('triggerTitle')}">
         <span class="idm-logo-badge">⚡</span>
         <span id="idm-btn-label">Videoyu İndir</span>
         <span class="idm-caret">▾</span>
       </button>
-      <button class="idm-quick-mp3-btn" id="idm-quick-mp3" title="Tek Tıkla 320kbps MP3 Olarak İndir">
+      <button class="idm-quick-mp3-btn" id="idm-quick-mp3" title="${t('quickMp3Title')}">
         🎵 MP3
       </button>
+      <button class="idm-collapse-btn" id="idm-collapse-btn" title="${t('collapseWidget')}">
+        ✕
+      </button>
     </div>
+
+    <!-- Collapsed / Mini Floating Pill -->
+    <div class="idm-mini-pill" id="idm-mini-pill" title="${t('expandWidget')}">
+      <div class="idm-mini-drag" id="idm-mini-drag" title="${t('dragHandle')}">
+        <svg width="7" height="11" viewBox="0 0 7 11" fill="currentColor">
+          <circle cx="1.5" cy="2" r="1.2"/>
+          <circle cx="5.5" cy="2" r="1.2"/>
+          <circle cx="1.5" cy="5.5" r="1.2"/>
+          <circle cx="5.5" cy="5.5" r="1.2"/>
+          <circle cx="1.5" cy="9" r="1.2"/>
+          <circle cx="5.5" cy="9" r="1.2"/>
+        </svg>
+      </div>
+      <span class="idm-mini-icon">⚡</span>
+      <span class="idm-mini-label">Velotrap</span>
+      <span class="idm-mini-expand-icon">↗</span>
+    </div>
+
+    <!-- Dropdown Menu -->
     <div class="idm-dropdown" id="idm-dropdown">
       <div class="idm-dd-header">
         <div class="idm-dd-title-row">
+          <div class="idm-dd-drag-indicator" id="idm-dd-drag" title="${t('dragHandle')}">
+            <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+              <circle cx="2" cy="2" r="1.3"/>
+              <circle cx="6" cy="2" r="1.3"/>
+              <circle cx="2" cy="6" r="1.3"/>
+              <circle cx="6" cy="6" r="1.3"/>
+              <circle cx="2" cy="10" r="1.3"/>
+              <circle cx="6" cy="10" r="1.3"/>
+            </svg>
+          </div>
           <span class="idm-video-title" id="idm-dd-title">Video Hazır</span>
           <span class="idm-scan-badge" id="idm-scan-status">Hazır</span>
+          <button class="idm-dd-close-btn" id="idm-dd-close" title="${t('closeMenu')}">✕</button>
         </div>
         <div class="idm-mode-tabs">
           <button class="idm-mode-tab active-video" id="idm-tab-video">
@@ -733,6 +938,12 @@
   const tabVideoBtn = widget.querySelector('#idm-tab-video');
   const tabAudioBtn = widget.querySelector('#idm-tab-audio');
   const connPills = widget.querySelectorAll('.conn-pill');
+  const collapseBtn = widget.querySelector('#idm-collapse-btn');
+  const miniPill = widget.querySelector('#idm-mini-pill');
+  const ddCloseBtn = widget.querySelector('#idm-dd-close');
+  const dragHandle = widget.querySelector('#idm-drag-handle');
+  const miniDrag = widget.querySelector('#idm-mini-drag');
+  const ddDrag = widget.querySelector('#idm-dd-drag');
 
   function applyContentLanguage(newLang) {
     if (!newLang || (newLang !== 'tr' && newLang !== 'en')) return;
@@ -750,6 +961,12 @@
     if (quickMp3Btn) quickMp3Btn.title = t('quickMp3Title');
     if (tabVideoBtn) tabVideoBtn.textContent = t('tabVideo');
     if (tabAudioBtn) tabAudioBtn.textContent = t('tabAudio');
+    if (collapseBtn) collapseBtn.title = t('collapseWidget');
+    if (miniPill) miniPill.title = t('expandWidget');
+    if (dragHandle) dragHandle.title = t('dragHandle');
+    if (miniDrag) miniDrag.title = t('dragHandle');
+    if (ddDrag) ddDrag.title = t('dragHandle');
+    if (ddCloseBtn) ddCloseBtn.title = t('closeMenu');
 
     const connRowSpan = widget.querySelector('.idm-conn-row > span');
     if (connRowSpan) connRowSpan.textContent = t('connSpeed');
@@ -820,6 +1037,114 @@
     sendIdmMessage({ type: 'FOCUS_IDM_APP' });
   });
 
+  let isDragging = false;
+  let dragHasMoved = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let widgetStartLeft = 0;
+  let widgetStartTop = 0;
+  let customOffsetX = null;
+  let customOffsetY = null;
+  let isCollapsed = false;
+
+  function onWidgetPointerDown(e) {
+    if (e.button !== 0) return;
+    if (e.target.closest('button, input, select, .idm-format-item, .conn-pill, .idm-mode-tab')) {
+      return;
+    }
+
+    isDragging = true;
+    dragHasMoved = false;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+
+    const rect = widget.getBoundingClientRect();
+    widgetStartLeft = rect.left;
+    widgetStartTop = rect.top;
+
+    widget.classList.add('dragging');
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', onWindowPointerUp, { passive: false });
+  }
+
+  function onWindowPointerMove(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+
+    if (!dragHasMoved && Math.hypot(dx, dy) > 3) {
+      dragHasMoved = true;
+    }
+
+    if (dragHasMoved) {
+      e.preventDefault();
+      let newLeft = widgetStartLeft + dx;
+      let newTop = widgetStartTop + dy;
+
+      const maxLeft = Math.max(5, window.innerWidth - widget.offsetWidth - 5);
+      const maxTop = Math.max(5, window.innerHeight - widget.offsetHeight - 5);
+      newLeft = Math.max(5, Math.min(newLeft, maxLeft));
+      newTop = Math.max(5, Math.min(newTop, maxTop));
+
+      widget.style.left = `${newLeft}px`;
+      widget.style.top = `${newTop}px`;
+
+      if (activeVideo && document.contains(activeVideo)) {
+        const vRect = activeVideo.getBoundingClientRect();
+        customOffsetX = newLeft - vRect.left;
+        customOffsetY = newTop - vRect.top;
+      }
+    }
+  }
+
+  function onWindowPointerUp(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    widget.classList.remove('dragging');
+    window.removeEventListener('pointermove', onWindowPointerMove);
+    window.removeEventListener('pointerup', onWindowPointerUp);
+  }
+
+  widget.addEventListener('pointerdown', onWidgetPointerDown);
+
+  collapseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isCollapsed = true;
+    isDropdownOpen = false;
+    widget.classList.remove('open');
+    widget.classList.add('collapsed');
+    requestAnimationFrame(updateWidgetPosition);
+  });
+
+  miniPill.addEventListener('click', (e) => {
+    if (dragHasMoved) return;
+    e.stopPropagation();
+    e.preventDefault();
+    isCollapsed = false;
+    widget.classList.remove('collapsed');
+    requestAnimationFrame(updateWidgetPosition);
+  });
+
+  ddCloseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isDropdownOpen = false;
+    widget.classList.remove('open');
+    requestAnimationFrame(updateWidgetPosition);
+  });
+
+  function resetWidgetPosition(e) {
+    e.stopPropagation();
+    customOffsetX = null;
+    customOffsetY = null;
+    requestAnimationFrame(updateWidgetPosition);
+  }
+
+  if (dragHandle) dragHandle.addEventListener('dblclick', resetWidgetPosition);
+  if (miniDrag) miniDrag.addEventListener('dblclick', resetWidgetPosition);
+  if (ddDrag) ddDrag.addEventListener('dblclick', resetWidgetPosition);
+
   widget.addEventListener('mouseenter', () => {
     isHoveringWidget = true;
     if (hideTimeout) {
@@ -830,7 +1155,7 @@
 
   widget.addEventListener('mouseleave', () => {
     isHoveringWidget = false;
-    if (!isDropdownOpen) {
+    if (!isDropdownOpen && !isDragging) {
       scheduleHide();
     }
   });
@@ -1019,15 +1344,26 @@
       rect.bottom < 40 ||
       rect.top > window.innerHeight - 40
     ) {
-      if (!isDropdownOpen) {
+      if (!isDropdownOpen && !isDragging) {
         widget.classList.remove('visible');
       }
       return;
     }
 
-    const top = Math.max(10, rect.top + 10);
-    const rightEdge = Math.min(window.innerWidth - 10, rect.right - 10);
-    const left = Math.max(10, rightEdge - widget.offsetWidth);
+    let top, left;
+    if (customOffsetX !== null && customOffsetY !== null) {
+      left = rect.left + customOffsetX;
+      top = rect.top + customOffsetY;
+    } else {
+      top = Math.max(10, rect.top + 10);
+      const rightEdge = Math.min(window.innerWidth - 10, rect.right - 10);
+      left = Math.max(10, rightEdge - widget.offsetWidth);
+    }
+
+    const maxLeft = Math.max(5, window.innerWidth - widget.offsetWidth - 5);
+    const maxTop = Math.max(5, window.innerHeight - widget.offsetHeight - 5);
+    left = Math.max(5, Math.min(left, maxLeft));
+    top = Math.max(5, Math.min(top, maxTop));
 
     widget.style.top = `${top}px`;
     widget.style.left = `${left}px`;
@@ -1049,7 +1385,7 @@
   function scheduleHide() {
     if (hideTimeout) clearTimeout(hideTimeout);
     hideTimeout = setTimeout(() => {
-      if (!isHoveringWidget && !isDropdownOpen) {
+      if (!isHoveringWidget && !isDropdownOpen && !isDragging) {
         widget.classList.remove('visible');
       }
     }, 600);
