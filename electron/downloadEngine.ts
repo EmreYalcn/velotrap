@@ -995,11 +995,27 @@ export class DownloadEngine extends EventEmitter {
         }
       }
 
-      const nodeBin = fs.existsSync('/opt/homebrew/bin/node')
-        ? '/opt/homebrew/bin/node'
-        : fs.existsSync('/usr/local/bin/node')
-        ? '/usr/local/bin/node'
-        : '';
+      // PO-Token & YouTube Anti-Bot Shield (Player Client Fallback Cascade)
+      // Ensures downloads never get blocked by "Sign in to confirm you're not a bot" or 403 Forbidden
+      if (this.settings.youtubeAntiBot !== false) {
+        args.push(
+          '--extractor-args',
+          'youtube:player_client=android,web,mweb,ios;player_skip=configs'
+        );
+      }
+
+      if (this.settings.youtubeBrowserCookies && this.settings.youtubeBrowserCookies !== 'none') {
+        args.push('--cookies-from-browser', this.settings.youtubeBrowserCookies);
+      }
+
+      const pluginDirs = [
+        path.join(os.homedir(), '.config', 'yt-dlp', 'plugins'),
+      ].filter((p) => fs.existsSync(p));
+      for (const p of pluginDirs) {
+        args.push('--plugin-dirs', p);
+      }
+
+      const nodeBin = this.resolveNodeBinary();
       if (nodeBin) {
         args.push('--js-runtimes', `node:${nodeBin}`);
       }
@@ -2008,12 +2024,29 @@ export class DownloadEngine extends EventEmitter {
     return null;
   }
 
+  public resolveNodeBinary(): string | null {
+    const candidates = [
+      '/opt/homebrew/bin/node',
+      '/usr/local/bin/node',
+      '/usr/bin/node',
+      path.join(process.env.HOME || '', '.nvm/versions/node'),
+    ].filter(Boolean);
+
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
   public resolveYtDlpBinary(): string | null {
     const candidates = [
       this.settings.ytDlpPath,
       '/opt/homebrew/bin/yt-dlp',
       '/usr/local/bin/yt-dlp',
       path.join(process.env.HOME || '', '.local/bin/yt-dlp'),
+      path.join(process.env.HOME || '', '.stacher/yt-dlp'),
+      path.join(process.env.HOME || '', '.bin/yt-dlp'),
+      path.join(process.env.HOME || '', 'bin/yt-dlp'),
     ].filter(Boolean);
 
     for (const p of candidates) {

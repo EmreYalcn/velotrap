@@ -1,34 +1,8 @@
 {
   "name": "velotrap",
-  "version": "3.1.11",
-  "description": "Velotrap - High-Speed Multi-Threaded Download Manager & Universal Video/Audio Grabber",
+  "version": "3.1.13",
+  "description": "Velotrap - Multi-threaded File Accelerator & Universal Video Grabber",
   "main": "dist-electron/main.js",
-  "author": "Velotrap Community",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/velotrap/velotrap.git"
-  },
-  "bugs": {
-    "url": "https://github.com/velotrap/velotrap/issues"
-  },
-  "homepage": "https://github.com/velotrap/velotrap#readme",
-  "keywords": [
-    "download-manager",
-    "idm-alternative",
-    "video-downloader",
-    "mp3-converter",
-    "electron",
-    "react",
-    "hls-downloader",
-    "m3u8",
-    "chrome-extension",
-    "multi-threaded-downloads",
-    "ffmpeg",
-    "yt-dlp",
-    "macos",
-    "open-source"
-  ],
   "scripts": {
     "dev:vite": "vite",
     "bump": "node scripts/bump-version.mjs",
@@ -36,11 +10,8 @@
     "build:vite": "vite build",
     "build": "npm run bump && npm run build:electron && npm run build:vite",
     "package:mac": "npm run build && node scripts/package-macos.mjs",
-    "start": "npm run build && electron .",
+    "start": "npm run build && ./node_modules/electron/dist/Velotrap.app/Contents/MacOS/Velotrap .",
     "test": "node --test tests/engine.test.mjs"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   },
   "dependencies": {
     "lucide-react": "^0.460.0",

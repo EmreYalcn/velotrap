@@ -109,4 +109,6 @@ export interface EngineSettings {
   ytDlpPath: string;
   ffmpegPath: string;
   language?: AppLanguage;
+  youtubeAntiBot?: boolean;
+  youtubeBrowserCookies?: 'none' | 'chrome' | 'safari' | 'firefox' | 'brave';
 }

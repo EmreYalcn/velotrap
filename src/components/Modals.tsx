@@ -13,6 +13,7 @@ import {
   Plus,
   Radar,
   Settings,
+  ShieldCheck,
   Sparkles,
   Trash2,
   X,
@@ -462,6 +463,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     settings.autoStartDownloads
   );
   const [language, setLanguage] = useState<AppLanguage>(settings.language || 'tr');
+  const [youtubeAntiBot, setYoutubeAntiBot] = useState(
+    settings.youtubeAntiBot !== false
+  );
+  const [youtubeBrowserCookies, setYoutubeBrowserCookies] = useState<string>(
+    settings.youtubeBrowserCookies || 'none'
+  );
   const [installing, setInstalling] = useState(false);
 
   const isEn = language === 'en';
@@ -473,6 +480,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       speedLimitKbps,
       autoStartDownloads,
       language,
+      youtubeAntiBot,
+      youtubeBrowserCookies: youtubeBrowserCookies as any,
     });
     onClose();
   };
@@ -714,6 +723,83 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
                 </button>
               )}
+            </div>
+
+            <div
+              className="engine-status-row"
+              style={{
+                marginTop: 14,
+                paddingTop: 12,
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <div>
+                <strong>
+                  {isEn
+                    ? 'YouTube PO-Token & Anti-Bot Shield:'
+                    : 'YouTube PO-Token & Botguard Kalkanı:'}
+                </strong>
+                <div className="muted-sub">
+                  {isEn
+                    ? 'Bypasses HTTP 403 & bot verification challenges via mobile client cascade (Android/iOS/Web)'
+                    : 'HTTP 403 ve bot doğrulama engellerini mobil istemci rotasyonu ve JS motoruyla otomatik aşar'}
+                </div>
+              </div>
+              <span className={`engine-pill ${youtubeAntiBot ? 'pill-ok' : 'pill-warn'}`}>
+                {youtubeAntiBot ? (
+                  <>
+                    <ShieldCheck size={13} /> {isEn ? 'Protected' : 'Korumalı & Aktif'}
+                  </>
+                ) : isEn ? (
+                  'Disabled'
+                ) : (
+                  'Devre Dışı'
+                )}
+              </span>
+            </div>
+
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="checkbox-row" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={youtubeAntiBot}
+                  onChange={(e) => setYoutubeAntiBot(e.target.checked)}
+                />
+                <span style={{ fontSize: 13, fontWeight: 500 }}>
+                  {isEn
+                    ? 'Enable Automated PO-Token & Mobile Player Cascade'
+                    : 'Otomatik PO-Token & Mobil İstemci Korumasını Etkinleştir'}
+                </span>
+              </label>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: 4,
+                }}
+              >
+                <span className="muted-sub" style={{ fontSize: 12 }}>
+                  {isEn
+                    ? 'Browser Cookies for Private/Age-Restricted Videos:'
+                    : 'Gizli / Yaş Kısıtlamalı Videolar İçin Tarayıcı Çerezleri:'}
+                </span>
+                <select
+                  className="idm-select"
+                  style={{ fontSize: 12, padding: '3px 8px' }}
+                  value={youtubeBrowserCookies}
+                  onChange={(e) => setYoutubeBrowserCookies(e.target.value)}
+                >
+                  <option value="none">
+                    {isEn ? 'Disabled (Guest Mode)' : 'Devre Dışı (Misafir Modu)'}
+                  </option>
+                  <option value="safari">Safari</option>
+                  <option value="chrome">Google Chrome</option>
+                  <option value="brave">Brave</option>
+                  <option value="firefox">Firefox</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

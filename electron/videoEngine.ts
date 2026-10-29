@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import * as http from 'http';
 import * as https from 'https';
 import { URL } from 'url';
@@ -412,6 +413,31 @@ export class VideoEngine {
         '--no-check-certificates',
         '--geo-bypass',
       ];
+
+      // YouTube PO-Token & Anti-Bot Shield (Player Client Fallback Cascade)
+      if (this.downloadEngine.getSettings().youtubeAntiBot !== false) {
+        args.push(
+          '--extractor-args',
+          'youtube:player_client=android,web,mweb,ios;player_skip=configs'
+        );
+      }
+
+      const cookiesBrowser = this.downloadEngine.getSettings().youtubeBrowserCookies;
+      if (cookiesBrowser && cookiesBrowser !== 'none') {
+        args.push('--cookies-from-browser', cookiesBrowser);
+      }
+
+      const nodeBin = this.downloadEngine.resolveNodeBinary();
+      if (nodeBin) {
+        args.push('--js-runtimes', `node:${nodeBin}`);
+      }
+
+      const pluginDirs = [
+        path.join(os.homedir(), '.config', 'yt-dlp', 'plugins'),
+      ].filter((p) => fs.existsSync(p));
+      for (const p of pluginDirs) {
+        args.push('--plugin-dirs', p);
+      }
       if (useCustomHeaders) {
         for (const [k, v] of Object.entries(headers)) {
           if (v) args.push('--add-header', `${k}:${v}`);

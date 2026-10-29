@@ -122,6 +122,8 @@ function createDefaultSettings(stateDir: string): EngineSettings {
     ytDlpPath: '',
     ffmpegPath: '/opt/homebrew/bin/ffmpeg',
     language: 'tr',
+    youtubeAntiBot: true,
+    youtubeBrowserCookies: 'none',
   };
 
   try {
