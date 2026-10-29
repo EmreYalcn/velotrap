@@ -296,6 +296,17 @@ export function App() {
     }
   };
 
+    const handleClearCompleted = async () => {
+    if (!window.idmApi) return;
+    const toClear = downloads.filter((d) => d.status === 'completed');
+    if (toClear.length === 0) return;
+    for (const item of toClear) {
+      await window.idmApi.deleteDownload(item.id, false);
+    }
+    const updated = await window.idmApi.getDownloads();
+    setDownloads(updated);
+  };
+
   const handleDelete = async (id: string, deleteDisk = false) => {
     if (window.idmApi) {
       const updated = await window.idmApi.deleteDownload(id, deleteDisk);
@@ -749,6 +760,14 @@ export function App() {
             <div className="liquid-card downloaded-files-card">
               <div className="liquid-card-header">
                 <div className="header-left">
+                  <button
+                    className="liquid-btn-clear-history"
+                    title={isEn ? 'Clear completed history' : 'Tamamlanan geçmişi temizle'}
+                    onClick={handleClearCompleted}
+                  >
+                    <Trash2 size={12} />
+                    <span>{isEn ? 'Clear' : 'Temizle'}</span>
+                  </button>
                   <CheckCircle2 size={16} className="text-emerald" />
                   <h3>{isEn ? 'History' : 'Geçmiş'}</h3>
                   <span className="liquid-badge-counter">{completedDownloads.length}</span>
