@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  Clock,
   Download,
   Film,
   Globe,
@@ -9,12 +10,15 @@ import {
   Loader2,
   Music,
   Radar,
+  RotateCcw,
+  Scissors,
   Sparkles,
   Tv,
   X,
   Zap,
 } from 'lucide-react';
 import {
+  ClipRange,
   EngineStatus,
   VideoAnalysisResult,
   VideoFormatOption,
@@ -38,6 +42,7 @@ interface Props {
     videoResolution?: string;
     headers?: Record<string, string>;
     totalBytes?: number;
+    clipRange?: ClipRange;
   }) => Promise<void>;
 }
 
@@ -75,6 +80,44 @@ export const VideoGrabberModal: React.FC<Props> = ({
   const [selectedFormat, setSelectedFormat] = useState<VideoFormatOption | null>(null);
   const [connectionsCount, setConnectionsCount] = useState<number>(16);
   const [customTitle, setCustomTitle] = useState<string>('');
+  const [isClipEnabled, setIsClipEnabled] = useState<boolean>(false);
+  const [clipStart, setClipStart] = useState<string>('00:00');
+  const [clipEnd, setClipEnd] = useState<string>('');
+
+  const parseTimeToSeconds = (t: string): number => {
+    if (!t) return 0;
+    const parts = t.trim().split(':').map((p) => parseFloat(p) || 0);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (/^\d+(\.\d+)?$/.test(t.trim())) return parseFloat(t.trim());
+    return 0;
+  };
+
+  const formatSecondsToTime = (sec: number): string => {
+    const total = Math.max(0, Math.floor(sec));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
+  };
+
+  const clipDurationSummary = useMemo(() => {
+    if (!isClipEnabled) return null;
+    const s = parseTimeToSeconds(clipStart);
+    const e = clipEnd ? parseTimeToSeconds(clipEnd) : (analysis?.durationSeconds || 0);
+    if (e > s) {
+      return formatDuration(e - s);
+    }
+    return 'Başlangıçtan sona kadar';
+  }, [isClipEnabled, clipStart, clipEnd, analysis]);
+
+  const handleApplyPreset = (addSec: number) => {
+    const s = parseTimeToSeconds(clipStart);
+    const newEnd = s + addSec;
+    setClipEnd(formatSecondsToTime(newEnd));
+  };
 
   const videoFormats = useMemo(
     () => (analysis ? analysis.formats.filter((f) => !f.isAudioOnly) : []),
@@ -168,6 +211,14 @@ export const VideoGrabberModal: React.FC<Props> = ({
       targetDownloadUrl = analysis.url;
     }
 
+    const clipRange: ClipRange | undefined =
+      isClipEnabled && clipStart.trim()
+        ? {
+            startTime: clipStart.trim(),
+            endTime: clipEnd.trim() || undefined,
+          }
+        : undefined;
+
     await onConfirmDownload({
       url: targetDownloadUrl,
       fileName,
@@ -177,6 +228,7 @@ export const VideoGrabberModal: React.FC<Props> = ({
       videoResolution: selectedFormat.resolution,
       headers: analysis.headers,
       totalBytes: selectedFormat.filesize,
+      clipRange,
     });
     onClose();
   };
@@ -374,6 +426,99 @@ export const VideoGrabberModal: React.FC<Props> = ({
                   <span>MP3 / Ses Dosyasına Dönüştür</span>
                   <span className="mode-count-pill">{audioFormats.length} Format</span>
                 </button>
+              </div>
+
+              {/* Video Kırpıcı / Bölüm İndirme Paneli */}
+              <div className="clip-panel">
+                <div
+                  className="clip-toggle-row"
+                  onClick={() => setIsClipEnabled(!isClipEnabled)}
+                >
+                  <div className="clip-toggle-label">
+                    <Scissors size={15} />
+                    <span>Belirli Bir Bölümü Kırp & İndir (Clip & Download)</span>
+                    {clipDurationSummary && (
+                      <span className="clip-duration-badge">
+                        <Clock size={12} /> {clipDurationSummary}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="clip-toggle-checkbox"
+                    checked={isClipEnabled}
+                    onChange={(e) => setIsClipEnabled(e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+
+                {isClipEnabled && (
+                  <div className="clip-content-box">
+                    <div className="clip-controls-grid">
+                      <div className="clip-input-group">
+                        <label>Başlangıç Zamanı (ss:dd veya sn):</label>
+                        <input
+                          type="text"
+                          className="clip-input"
+                          placeholder="00:00"
+                          value={clipStart}
+                          onChange={(e) => setClipStart(e.target.value)}
+                        />
+                      </div>
+                      <div className="clip-input-group">
+                        <label>Bitiş Zamanı (Boş = Video Sonu):</label>
+                        <input
+                          type="text"
+                          className="clip-input"
+                          placeholder={
+                            analysis.durationSeconds
+                              ? formatSecondsToTime(analysis.durationSeconds)
+                              : '00:00 (Sona kadar)'
+                          }
+                          value={clipEnd}
+                          onChange={(e) => setClipEnd(e.target.value)}
+                        />
+                      </div>
+                      <div className="clip-presets">
+                        <button
+                          type="button"
+                          className="clip-preset-btn"
+                          onClick={() => handleApplyPreset(30)}
+                          title="Başlangıçtan itibaren 30 saniye kırpar"
+                        >
+                          +30 sn
+                        </button>
+                        <button
+                          type="button"
+                          className="clip-preset-btn"
+                          onClick={() => handleApplyPreset(60)}
+                          title="Başlangıçtan itibaren 1 dakika kırpar"
+                        >
+                          +1 dk
+                        </button>
+                        <button
+                          type="button"
+                          className="clip-preset-btn"
+                          onClick={() => handleApplyPreset(300)}
+                          title="Başlangıçtan itibaren 5 dakika kırpar"
+                        >
+                          +5 dk
+                        </button>
+                        <button
+                          type="button"
+                          className="clip-preset-btn"
+                          onClick={() => {
+                            setClipStart('00:00');
+                            setClipEnd('');
+                          }}
+                          title="Zamanları sıfırla"
+                        >
+                          <RotateCcw size={11} style={{ display: 'inline', marginRight: 2 }} /> Sıfırla
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="formats-list-header">

@@ -468,6 +468,7 @@ function startCompanionHttpBridge(): void {
             totalBytes: payload.totalBytes,
             description: payload.description,
             autoStart: payload.autoStart ?? true,
+            clipRange: payload.clipRange,
           });
 
           if (payload.focusWindow && mainWindow && !mainWindow.isDestroyed()) {

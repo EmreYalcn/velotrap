@@ -27,6 +27,11 @@ export interface SegmentState {
   info: string;
 }
 
+export interface ClipRange {
+  startTime: string;
+  endTime?: string;
+}
+
 export interface DownloadItem {
   id: string;
   url: string;
@@ -51,6 +56,7 @@ export interface DownloadItem {
   pageUrl?: string;
   fallbackStreamUrls?: string[];
   description?: string;
+  clipRange?: ClipRange;
 }
 
 export interface VideoFormatOption {

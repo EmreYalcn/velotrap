@@ -7,6 +7,7 @@ import { URL } from 'url';
 import { EventEmitter } from 'events';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import {
+  ClipRange,
   DownloadCategory,
   DownloadItem,
   EngineSettings,
@@ -41,6 +42,43 @@ export function sanitizeFileName(name: string): string {
   const ext = path.extname(cleaned);
   const base = path.basename(cleaned, ext).slice(0, 90).trim();
   return `${base || 'video'}${ext}`;
+}
+
+/**
+ * Parses timestamp string (e.g. "01:23", "01:23:45", "75", "12.5") into total seconds.
+ */
+export function parseTimeToSeconds(input: string | number | undefined | null): number {
+  if (input === undefined || input === null) return 0;
+  if (typeof input === 'number') return Math.max(0, input);
+  const trimmed = String(input).trim();
+  if (!trimmed) return 0;
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    return Math.max(0, parseFloat(trimmed));
+  }
+
+  const parts = trimmed.split(':').map((p) => parseFloat(p) || 0);
+  if (parts.length === 3) {
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  } else if (parts.length === 2) {
+    return Math.max(0, parts[0] * 60 + parts[1]);
+  }
+  return 0;
+}
+
+/**
+ * Formats seconds into "hh:mm:ss" or "mm:ss" string for yt-dlp & FFmpeg
+ */
+export function formatSecondsToTime(sec: number): string {
+  const total = Math.max(0, Math.floor(sec));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  if (h > 0) {
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  return `${pad(m)}:${pad(s)}`;
 }
 
 export interface ProbeResult {
@@ -368,6 +406,7 @@ export class DownloadEngine extends EventEmitter {
     description?: string;
     totalBytes?: number;
     autoStart?: boolean;
+    clipRange?: ClipRange;
   }): Promise<DownloadItem> {
     const id = `dl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const saveDir = options.saveDir || this.settings.downloadDir;
@@ -442,6 +481,16 @@ export class DownloadEngine extends EventEmitter {
       fileName = fileName.replace(/\.m3u8$/i, '.mp4');
     }
 
+    if (options.clipRange && options.clipRange.startTime) {
+      const sSec = parseTimeToSeconds(options.clipRange.startTime);
+      const eSec = options.clipRange.endTime ? parseTimeToSeconds(options.clipRange.endTime) : 0;
+      const sTag = formatSecondsToTime(sSec).replace(/:/g, '-');
+      const eTag = eSec > sSec ? formatSecondsToTime(eSec).replace(/:/g, '-') : 'end';
+      const fileExt = path.extname(fileName);
+      const baseName = path.basename(fileName, fileExt);
+      fileName = `${baseName}_clip_${sTag}_${eTag}${fileExt}`;
+    }
+
     fileName = sanitizeFileName(fileName);
     const uniqueFileName = this.getUniqueFileName(saveDir, fileName);
     const savePath = path.join(saveDir, uniqueFileName);
@@ -471,6 +520,7 @@ export class DownloadEngine extends EventEmitter {
       pageUrl: options.pageUrl,
       fallbackStreamUrls: options.fallbackStreamUrls,
       description: options.description,
+      clipRange: options.clipRange,
     };
 
     this.items.set(id, item);
@@ -886,6 +936,16 @@ export class DownloadEngine extends EventEmitter {
         args.push('--limit-rate', `${this.settings.speedLimitKbps}K`);
       }
 
+      if (item.clipRange && item.clipRange.startTime) {
+        const startSec = parseTimeToSeconds(item.clipRange.startTime);
+        const endSec = item.clipRange.endTime ? parseTimeToSeconds(item.clipRange.endTime) : 0;
+        const section =
+          endSec > startSec
+            ? `*${formatSecondsToTime(startSec)}-${formatSecondsToTime(endSec)}`
+            : `*${formatSecondsToTime(startSec)}-inf`;
+        args.push('--download-sections', section, '--force-keyframes-at-cuts');
+      }
+
       if (useCustomHeaders) {
         const headers: Record<string, string> = {
           'User-Agent': DEFAULT_USER_AGENT,
@@ -986,6 +1046,18 @@ export class DownloadEngine extends EventEmitter {
         .map(([k, v]) => `${k}: ${v}\r\n`)
         .join('');
 
+      const clipArgs: string[] = [];
+      if (item.clipRange && item.clipRange.startTime) {
+        const sSec = parseTimeToSeconds(item.clipRange.startTime);
+        clipArgs.push('-ss', String(sSec));
+        if (item.clipRange.endTime) {
+          const eSec = parseTimeToSeconds(item.clipRange.endTime);
+          if (eSec > sSec) {
+            clipArgs.push('-to', String(eSec));
+          }
+        }
+      }
+
       const args = [
         '-y',
         '-headers',
@@ -996,8 +1068,10 @@ export class DownloadEngine extends EventEmitter {
 
       if (audioStreamUrl) {
         args.push('-headers', headerLines, '-i', audioStreamUrl);
+        if (clipArgs.length > 0) args.push(...clipArgs);
         args.push('-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart', outFile);
       } else {
+        if (clipArgs.length > 0) args.push(...clipArgs);
         args.push('-c', 'copy', '-bsf:a', 'aac_adtstoasc', outFile);
       }
 

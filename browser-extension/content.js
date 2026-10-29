@@ -178,6 +178,13 @@
       pM4aNote: 'Yüksek kalite AAC ses çıkarıcı',
       pWavRes: 'WAV Ses (Kayıpsız PCM)',
       pWavNote: 'Sıkıştırmasız stüdyo WAV ses dosyası',
+      clipTitle: '✂️ Bölüm Kırp (Clip)',
+      clipOff: 'Kapalı',
+      clipOn: 'Açık',
+      clipStartLabel: 'Başlangıç:',
+      clipEndLabel: 'Bitiş:',
+      clipNowBtn: '📍 Şu An',
+      clipEndNowBtn: '🏁 Şu An',
     },
     en: {
       downloadVideo: 'Download Video',
@@ -204,6 +211,13 @@
       sentMp3: '✓ Downloading MP3!',
       sentVideo: '✓ Downloading',
       appOffline: '⚠️ Velotrap Not Open!',
+      clipTitle: '✂️ Clip & Download',
+      clipOff: 'Off',
+      clipOn: 'Active',
+      clipStartLabel: 'Start:',
+      clipEndLabel: 'End:',
+      clipNowBtn: '📍 Current',
+      clipEndNowBtn: '🏁 Current',
       // Presets
       pBestRes: 'Highest Quality (Best Available in Video)',
       pBestNote: 'Auto downloads highest available resolution (4K/1080p/720p/360p)',
@@ -721,6 +735,93 @@
       color: #fff;
     }
 
+    .idm-clip-section {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      border-radius: 6px;
+      padding: 6px 8px;
+      margin-top: 6px;
+    }
+
+    .idm-clip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: #c084fc;
+      user-select: none;
+    }
+
+    .idm-clip-status {
+      font-size: 9.5px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #cbd5e1;
+    }
+
+    .idm-clip-status.active {
+      background: #7c3aed;
+      color: #fff;
+    }
+
+    .idm-clip-inputs {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 6px;
+    }
+
+    .idm-clip-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      color: #94a3b8;
+    }
+
+    .idm-clip-row label {
+      width: 58px;
+      flex-shrink: 0;
+    }
+
+    .idm-clip-field {
+      flex: 1;
+      min-width: 0;
+      background: #0b111e;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      color: #fff;
+      padding: 3px 6px;
+      font-size: 11px;
+      font-family: monospace;
+      outline: none;
+    }
+
+    .idm-clip-field:focus {
+      border-color: #a855f7;
+    }
+
+    .idm-clip-cur-btn {
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #e9d5ff;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .idm-clip-cur-btn:hover {
+      background: rgba(168, 85, 247, 0.4);
+      color: #fff;
+    }
+
     .idm-dd-list {
       overflow-y: auto;
       max-height: 270px;
@@ -918,6 +1019,24 @@
             <button class="conn-pill" data-conn="32">32x</button>
           </div>
         </div>
+        <div class="idm-clip-section" id="idm-clip-section">
+          <div class="idm-clip-header" id="idm-clip-toggle-btn">
+            <span class="idm-clip-toggle-label">${t('clipTitle')}</span>
+            <span class="idm-clip-status" id="idm-clip-badge">${t('clipOff')}</span>
+          </div>
+          <div class="idm-clip-inputs" id="idm-clip-inputs" style="display: none;">
+            <div class="idm-clip-row">
+              <label>${t('clipStartLabel')}</label>
+              <input type="text" id="idm-clip-start" class="idm-clip-field" placeholder="00:00" value="00:00" />
+              <button type="button" class="idm-clip-cur-btn" id="idm-clip-set-start" title="Videonun şu anki anını başlangıç yap">${t('clipNowBtn')}</button>
+            </div>
+            <div class="idm-clip-row">
+              <label>${t('clipEndLabel')}</label>
+              <input type="text" id="idm-clip-end" class="idm-clip-field" placeholder="00:00 (Sona kadar)" />
+              <button type="button" class="idm-clip-cur-btn" id="idm-clip-set-end" title="Videonun şu anki anını bitiş yap">${t('clipEndNowBtn')}</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="idm-dd-list" id="idm-dd-list"></div>
       <div class="idm-dd-footer">
@@ -944,6 +1063,25 @@
   const dragHandle = widget.querySelector('#idm-drag-handle');
   const miniDrag = widget.querySelector('#idm-mini-drag');
   const ddDrag = widget.querySelector('#idm-dd-drag');
+  const clipToggleBtn = widget.querySelector('#idm-clip-toggle-btn');
+  const clipBadge = widget.querySelector('#idm-clip-badge');
+  const clipInputs = widget.querySelector('#idm-clip-inputs');
+  const clipStartInput = widget.querySelector('#idm-clip-start');
+  const clipEndInput = widget.querySelector('#idm-clip-end');
+  const clipSetStartBtn = widget.querySelector('#idm-clip-set-start');
+  const clipSetEndBtn = widget.querySelector('#idm-clip-set-end');
+  let isClipActive = false;
+
+  function formatCurrentTime(sec) {
+    if (!sec || isNaN(sec) || sec < 0) return '00:00';
+    const total = Math.floor(sec);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
+  }
 
   function applyContentLanguage(newLang) {
     if (!newLang || (newLang !== 'tr' && newLang !== 'en')) return;
@@ -975,6 +1113,16 @@
     if (footerSpan) footerSpan.textContent = t('engineFooter');
 
     if (openAppBtn) openAppBtn.textContent = t('openApp');
+
+    const clipToggleLabel = widget.querySelector('.idm-clip-toggle-label');
+    if (clipToggleLabel) clipToggleLabel.textContent = t('clipTitle');
+    if (clipBadge) clipBadge.textContent = isClipActive ? t('clipOn') : t('clipOff');
+    const clipStartLbl = widget.querySelector('#idm-clip-inputs .idm-clip-row:first-child label');
+    if (clipStartLbl) clipStartLbl.textContent = t('clipStartLabel');
+    const clipEndLbl = widget.querySelector('#idm-clip-inputs .idm-clip-row:last-child label');
+    if (clipEndLbl) clipEndLbl.textContent = t('clipEndLabel');
+    if (clipSetStartBtn) clipSetStartBtn.textContent = t('clipNowBtn');
+    if (clipSetEndBtn) clipSetEndBtn.textContent = t('clipEndNowBtn');
 
     if (isDropdownOpen && currentCtx) {
       if (currentAnalysis && currentAnalysis.extractor === 'instant') {
@@ -1037,6 +1185,43 @@
     sendIdmMessage({ type: 'FOCUS_IDM_APP' });
   });
 
+  if (clipToggleBtn) {
+    clipToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      isClipActive = !isClipActive;
+      if (clipInputs) clipInputs.style.display = isClipActive ? 'flex' : 'none';
+      if (clipBadge) {
+        clipBadge.textContent = isClipActive ? t('clipOn') : t('clipOff');
+        clipBadge.classList.toggle('active', isClipActive);
+      }
+      if (isClipActive && activeVideo) {
+        clipStartInput.value = formatCurrentTime(activeVideo.currentTime);
+      }
+      requestAnimationFrame(updateWidgetPosition);
+    });
+  }
+
+  if (clipSetStartBtn) {
+    clipSetStartBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeVideo) {
+        clipStartInput.value = formatCurrentTime(activeVideo.currentTime);
+      }
+    });
+  }
+
+  if (clipSetEndBtn) {
+    clipSetEndBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeVideo) {
+        clipEndInput.value = formatCurrentTime(activeVideo.currentTime);
+      }
+    });
+  }
+
   let isDragging = false;
   let dragHasMoved = false;
   let dragStartX = 0;
@@ -1049,7 +1234,7 @@
 
   function onWidgetPointerDown(e) {
     if (e.button !== 0) return;
-    if (e.target.closest('button, input, select, .idm-format-item, .conn-pill, .idm-mode-tab')) {
+    if (e.target.closest('button, input, select, .idm-format-item, .conn-pill, .idm-mode-tab, .idm-clip-section')) {
       return;
     }
 
@@ -1696,6 +1881,18 @@
     isDropdownOpen = false;
     widget.classList.remove('open');
 
+    let clipRange = null;
+    if (isClipActive && clipStartInput) {
+      const sVal = clipStartInput.value.trim();
+      const eVal = clipEndInput ? clipEndInput.value.trim() : '';
+      if (sVal) {
+        clipRange = {
+          startTime: sVal,
+          endTime: eVal || undefined,
+        };
+      }
+    }
+
     sendIdmMessage(
       {
         type: 'START_DOWNLOAD',
@@ -1710,6 +1907,7 @@
         fallbackStreamUrls: ctx.fallbackStreamUrls || [],
         headers: analysis.headers || {},
         focusWindow: true,
+        clipRange: clipRange || undefined,
       },
       (res) => {
         if (res && res.ok) {

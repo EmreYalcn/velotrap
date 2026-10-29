@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import {
   AppLanguage,
+  ClipRange,
   DownloadCategory,
   DownloadItem,
   EngineSettings,
@@ -243,6 +244,7 @@ export function App() {
     headers?: Record<string, string>;
     totalBytes?: number;
     autoStart?: boolean;
+    clipRange?: ClipRange;
   }) => {
     if (!window.idmApi) return;
     const created = await window.idmApi.addDownload(options);

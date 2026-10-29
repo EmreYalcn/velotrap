@@ -7,7 +7,11 @@ import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { DownloadEngine } = require('../dist-electron/downloadEngine.js');
+const {
+  DownloadEngine,
+  parseTimeToSeconds,
+  formatSecondsToTime,
+} = require('../dist-electron/downloadEngine.js');
 const { VideoEngine } = require('../dist-electron/videoEngine.js');
 
 async function runTests() {
@@ -93,6 +97,14 @@ async function runTests() {
   const port = server.address().port;
   const baseUrl = `http://127.0.0.1:${port}`;
 
+  const resolvePortableFfmpeg = () => {
+    if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) return process.env.FFMPEG_PATH;
+    if (fs.existsSync('/opt/homebrew/bin/ffmpeg')) return '/opt/homebrew/bin/ffmpeg';
+    if (fs.existsSync('/usr/local/bin/ffmpeg')) return '/usr/local/bin/ffmpeg';
+    if (fs.existsSync('/usr/bin/ffmpeg')) return '/usr/bin/ffmpeg';
+    return 'ffmpeg';
+  };
+
   const engine = new DownloadEngine(tmpDir, {
     downloadDir,
     maxConnectionsPerDownload: 8,
@@ -101,7 +113,7 @@ async function runTests() {
     autoStartDownloads: false,
     clipboardMonitor: false,
     ytDlpPath: '',
-    ffmpegPath: '/opt/homebrew/bin/ffmpeg',
+    ffmpegPath: resolvePortableFfmpeg(),
   });
 
   const videoEngine = new VideoEngine(engine, tmpDir);
@@ -141,6 +153,15 @@ async function runTests() {
     '   ✓ Webpage Video Analyzer discovered formats:',
     pageAnalysis.formats.map((f) => f.resolution).join(', ')
   );
+
+  console.log('4) Testing Clip Range Time Parsers & Formatters...');
+  assert.equal(parseTimeToSeconds('01:30'), 90);
+  assert.equal(parseTimeToSeconds('01:05:20'), 3920);
+  assert.equal(parseTimeToSeconds('45'), 45);
+  assert.equal(parseTimeToSeconds(''), 0);
+  assert.equal(formatSecondsToTime(90), '01:30');
+  assert.equal(formatSecondsToTime(3920), '01:05:20');
+  console.log('   ✓ Clip & Download time parsing & formatting verified');
 
   engine.destroy();
   server.close();
