@@ -421,476 +421,484 @@ export function App() {
         <main className="liquid-main-stage">
           {/* Main Content Bento Area */}
           <div className="liquid-bento-grid">
-            {/* Top-Left: Dual Long Strips (Video & MP3) replacing old hero */}
-            <div className="liquid-dual-strips-box">
-              {/* 1. Long Strip: Video Downloader */}
-              <div className="liquid-strip-card video-strip">
-                <div className="strip-header">
-                  <div className="strip-title-group">
-                    <div className="strip-icon-badge video-badge">
-                      <Film size={15} />
+            {/* Left Column: Compact Input Strips + Full Height History */}
+            <div className="liquid-left-column">
+              {/* Dual Strips (Compact) */}
+              <div className="liquid-dual-strips-box">
+                {/* 1. Long Strip: Video Downloader */}
+                <div className="liquid-strip-card video-strip">
+                  <div className="strip-header">
+                    <div className="strip-title-group">
+                      <div className="strip-icon-badge video-badge">
+                        <Film size={14} />
+                      </div>
+                      <div>
+                        <h3 className="strip-title">{isEn ? 'Video Downloader' : 'Video İndirme'}</h3>
+                        <p className="strip-desc">{isEn ? 'YouTube, TikTok, Instagram, X (4K 60fps)' : 'YouTube, TikTok, Instagram, X (4K 60fps)'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="strip-title">{isEn ? 'Video Downloader' : 'Video İndirme'}</h3>
-                      <p className="strip-desc">{isEn ? 'Download YouTube, TikTok, Instagram, Twitter videos in up to 4K 60fps' : 'YouTube, TikTok, Instagram veya Twitter videolarını 4K 60fps kalitesinde indirin'}</p>
-                    </div>
+                    <span className="strip-tag-pill">4K • 1080p • HLS</span>
                   </div>
-                  <span className="strip-tag-pill">4K • 1080p • HLS</span>
-                </div>
 
-                <div className="strip-input-bar">
-                  <Link2 size={15} className="strip-input-icon" />
-                  <input
-                    type="text"
-                    className="strip-input-field"
-                    placeholder={isEn ? 'Paste video URL here (e.g. YouTube, TikTok, X)...' : 'İndirmek istediğiniz video bağlantısını yapıştırın (YouTube, TikTok, X)...'}
-                    value={videoUrlInput}
-                    onChange={(e) => setVideoUrlInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && videoUrlInput.trim()) {
+                  <div className="strip-input-bar">
+                    <Link2 size={14} className="strip-input-icon" />
+                    <input
+                      type="text"
+                      className="strip-input-field"
+                      placeholder={isEn ? 'Paste video URL (YouTube, TikTok, X)...' : 'Video bağlantısını yapıştırın (YouTube, TikTok, X)...'}
+                      value={videoUrlInput}
+                      onChange={(e) => setVideoUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && videoUrlInput.trim()) {
+                          setModalInitialUrl(videoUrlInput.trim());
+                          setVideoUrlInput('');
+                          setShowVideoModal(true);
+                        }
+                      }}
+                    />
+                    <button
+                      className="liquid-btn-glass-queue"
+                      title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
+                      onClick={() => handleQueueDownload(videoUrlInput, 'video')}
+                    >
+                      <Clock size={12} />
+                      <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
+                    </button>
+                    <button
+                      className="liquid-btn-primary"
+                      onClick={() => {
                         setModalInitialUrl(videoUrlInput.trim());
                         setVideoUrlInput('');
                         setShowVideoModal(true);
-                      }
-                    }}
-                  />
-                  <button
-                    className="liquid-btn-glass-queue"
-                    title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
-                    onClick={() => handleQueueDownload(videoUrlInput, 'video')}
-                  >
-                    <Clock size={13} />
-                    <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
-                  </button>
-                  <button
-                    className="liquid-btn-primary"
-                    onClick={() => {
-                      setModalInitialUrl(videoUrlInput.trim());
-                      setVideoUrlInput('');
-                      setShowVideoModal(true);
-                    }}
-                  >
-                    <Zap size={13} />
-                    <span>{isEn ? 'Download Video' : 'Videoyu İndir'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Long Strip: MP3 / Audio Downloader */}
-              <div className="liquid-strip-card audio-strip">
-                <div className="strip-header">
-                  <div className="strip-title-group">
-                    <div className="strip-icon-badge audio-badge">
-                      <Music size={15} />
-                    </div>
-                    <div>
-                      <h3 className="strip-title">{isEn ? 'MP3 & Audio Downloader' : 'MP3 & Ses İndirme'}</h3>
-                      <p className="strip-desc">{isEn ? 'Extract high quality 320kbps MP3 from any video or music link' : 'Herhangi bir video veya müzik linkinden yüksek kaliteli 320kbps MP3 çıkarıp indirin'}</p>
-                    </div>
+                      }}
+                    >
+                      <Zap size={12} />
+                      <span>{isEn ? 'Download Video' : 'Videoyu İndir'}</span>
+                    </button>
                   </div>
-                  <span className="strip-tag-pill audio-pill">320kbps • FLAC</span>
                 </div>
 
-                <div className="strip-input-bar">
-                  <Link2 size={15} className="strip-input-icon" />
-                  <input
-                    type="text"
-                    className="strip-input-field"
-                    placeholder={isEn ? 'Paste link to convert directly to MP3...' : 'Doğrudan MP3 olarak indirmek için link yapıştırın...'}
-                    value={audioUrlInput}
-                    onChange={(e) => setAudioUrlInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && audioUrlInput.trim()) {
+                {/* 2. Long Strip: MP3 / Audio Downloader */}
+                <div className="liquid-strip-card audio-strip">
+                  <div className="strip-header">
+                    <div className="strip-title-group">
+                      <div className="strip-icon-badge audio-badge">
+                        <Music size={14} />
+                      </div>
+                      <div>
+                        <h3 className="strip-title">{isEn ? 'MP3 & Audio Downloader' : 'MP3 & Ses İndirme'}</h3>
+                        <p className="strip-desc">{isEn ? 'Extract high quality 320kbps MP3 audio' : 'Yüksek kaliteli 320kbps MP3 ses çıkarıp indirin'}</p>
+                      </div>
+                    </div>
+                    <span className="strip-tag-pill audio-pill">320kbps • FLAC</span>
+                  </div>
+
+                  <div className="strip-input-bar">
+                    <Link2 size={14} className="strip-input-icon" />
+                    <input
+                      type="text"
+                      className="strip-input-field"
+                      placeholder={isEn ? 'Paste link to convert directly to MP3...' : 'Doğrudan MP3 olarak indirmek için link yapıştırın...'}
+                      value={audioUrlInput}
+                      onChange={(e) => setAudioUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && audioUrlInput.trim()) {
+                          setConverterInitialFile('');
+                          setConverterInitialUrl(audioUrlInput.trim());
+                          setAudioUrlInput('');
+                          setShowConverterModal(true);
+                        }
+                      }}
+                    />
+                    <button
+                      className="liquid-btn-glass-queue"
+                      title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
+                      onClick={() => handleQueueDownload(audioUrlInput, 'music')}
+                    >
+                      <Clock size={12} />
+                      <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
+                    </button>
+                    <button
+                      className="liquid-btn-emerald"
+                      onClick={() => {
                         setConverterInitialFile('');
                         setConverterInitialUrl(audioUrlInput.trim());
                         setAudioUrlInput('');
                         setShowConverterModal(true);
-                      }
-                    }}
-                  />
-                  <button
-                    className="liquid-btn-glass-queue"
-                    title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
-                    onClick={() => handleQueueDownload(audioUrlInput, 'music')}
-                  >
-                    <Clock size={13} />
-                    <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
-                  </button>
-                  <button
-                    className="liquid-btn-emerald"
-                    onClick={() => {
-                      setConverterInitialFile('');
-                      setConverterInitialUrl(audioUrlInput.trim());
-                      setAudioUrlInput('');
-                      setShowConverterModal(true);
-                    }}
-                  >
-                    <Music size={13} />
-                    <span>{isEn ? 'Download MP3' : 'MP3 İndir'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Top-Right: Media Sniffer Radar */}
-            <div className="liquid-card sniffer-radar-card">
-              <div className="liquid-card-header">
-                <div className="header-left">
-                  <Radar size={16} className="text-neon-cyan" />
-                  <h3>Media Sniffer Radar</h3>
-                </div>
-                <div className="radar-live-tag">
-                  <span className="live-pulse-dot" />
-                  <span>{sniffedItems.length > 0 ? (isEn ? `${sniffedItems.length} Live Streams` : `${sniffedItems.length} Canlı Akış`) : (isEn ? 'Radar Active' : 'Radar Aktif')}</span>
+                      }}
+                    >
+                      <Music size={12} />
+                      <span>{isEn ? 'Download MP3' : 'MP3 İndir'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Supported Platforms & Live Captured Streams Deck */}
-              <div className="sniffer-items-list">
-                {sniffedItems.length > 0 && (
-                  <div className="snif-stream-group">
-                    <div className="snif-sub-label">{isEn ? "CAPTURED LIVE STREAMS" : "YAKALANAN CANLI AKIŞLAR"}</div>
-                    {sniffedItems.slice(0, 3).map((sItem) => (
-                      <div key={sItem.id} className="snif-row-tile">
-                        <div className="snif-tile-icon">
-                          {sItem.url.includes('youtube') || sItem.pageUrl.includes('youtube') ? (
-                            <span className="badge-yt">YT</span>
-                          ) : sItem.url.includes('tiktok') ? (
-                            <span className="badge-tt">TT</span>
+              {/* History Card: Expands upwards to fill all available space */}
+              <div className="liquid-card downloaded-files-card">
+                <div className="liquid-card-header">
+                  <div className="header-left">
+                    <button
+                      className="liquid-btn-clear-history"
+                      title={isEn ? 'Clear completed history' : 'Tamamlanan geçmişi temizle'}
+                      onClick={handleClearCompleted}
+                    >
+                      <Trash2 size={12} />
+                      <span>{isEn ? 'Clear' : 'Temizle'}</span>
+                    </button>
+                    <CheckCircle2 size={16} className="text-emerald" />
+                    <h3>{isEn ? 'History' : 'Geçmiş'}</h3>
+                    <span className="liquid-badge-counter">{completedDownloads.length}</span>
+                  </div>
+                  <div className="liquid-search-box">
+                    <Search size={12} className="text-muted" />
+                    <input
+                      type="text"
+                      placeholder={isEn ? 'Search files...' : 'Dosya ara...'}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="liquid-files-scroll">
+                  {filteredDownloads.length > 0 ? (
+                    filteredDownloads.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`liquid-file-row ${item.id === selectedId ? 'selected' : ''}`}
+                        onClick={() => setSelectedId(item.id)}
+                        onDoubleClick={() => {
+                          if (item.status === 'completed') {
+                            window.idmApi?.openFile(item.savePath);
+                          }
+                        }}
+                      >
+                        <div className="file-cat-icon">
+                          {item.category === 'music' ? (
+                            <Music size={14} className="text-rose" />
                           ) : (
-                            <Film size={14} />
+                            <Film size={14} className="text-sky" />
                           )}
                         </div>
-                        <div className="snif-tile-text">
-                          <div className="snif-name" title={sItem.pageTitle}>
-                            {sItem.pageTitle || (isEn ? 'Live Media Stream' : 'Canlı Medya Akışı')}
-                          </div>
-                          <div className="snif-spec">
-                            {sItem.ext?.toUpperCase() || 'VIDEO'} • {sItem.resolution || (sItem.sizeBytes ? formatBytes(sItem.sizeBytes, lang) : 'Stream')}
-                          </div>
-                        </div>
-                        <button
-                          className="liquid-btn-grab"
-                          onClick={async () => {
-                            const isHls = sItem.ext === 'm3u8' || sItem.url.includes('.m3u8');
-                            await handleAddDownload({
-                              url: sItem.url,
-                              fileName: `${sItem.pageTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${isHls ? 'mp4' : sItem.ext || 'mp4'}`,
-                              connectionsCount: 16,
-                              sourceType: isHls ? 'hls' : 'direct',
-                              headers: sItem.headers,
-                              autoStart: true,
-                            });
-                          }}
-                        >
-                          Grab
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
-                <div className="snif-stream-group">
-                  <div className="snif-sub-label">{isEn ? "SUPPORTED PLATFORMS" : "DESTEKLENEN PLATFORMLAR"}</div>
-                  
-                  {/* 1. YouTube */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-yt">YT</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">YouTube</div>
-                      <div className="snif-spec">{isEn ? "4K 60fps • HDR • Shorts • Auto Token" : "4K 60fps • HDR • Shorts • Otomatik Token"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('https://www.youtube.com');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 2. Instagram */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-ig">IG</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">Instagram</div>
-                      <div className="snif-spec">{isEn ? "Reels • Stories • Posts • 1080p" : "Reels • Hikayeler • Gönderiler • 1080p"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 3. TikTok */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-tt">TT</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">TikTok</div>
-                      <div className="snif-spec">{isEn ? "Watermark-Free HD • Audio Tracks" : "Filigransız HD • Ses Parçaları"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 4. Twitter / X */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-x">𝕏</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">Twitter / 𝕏</div>
-                      <div className="snif-spec">{isEn ? "Max Resolution • GIF & Video" : "Maksimum Çözünürlük • GIF & Video"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 5. SoundCloud */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-sc">SC</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">SoundCloud</div>
-                      <div className="snif-spec">{isEn ? "320kbps MP3 • Lossless FLAC / WAV" : "320kbps MP3 • Orijinal FLAC / WAV"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setConverterInitialUrl('');
-                        setShowConverterModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 6. Facebook */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-fb">FB</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">Facebook</div>
-                      <div className="snif-spec">{isEn ? "Watch Videos • Reels • 1080p" : "Watch Videoları • Reels • 1080p"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 7. Twitch */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-tw">TW</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">Twitch</div>
-                      <div className="snif-spec">{isEn ? "Clips • Past Broadcasts 1080p60" : "Klipler • VOD Geçmiş Yayınlar 1080p60"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 8. Vimeo */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-vm">VM</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">Vimeo</div>
-                      <div className="snif-spec">{isEn ? "4K / 2K Pro Media Streams" : "4K / 2K Pro Medya Akışları"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setModalInitialUrl('');
-                        setShowVideoModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-
-                  {/* 9. Evrensel Web HLS / M3U8 */}
-                  <div className="snif-row-tile">
-                    <div className="snif-tile-icon badge-hls">HLS</div>
-                    <div className="snif-tile-text">
-                      <div className="snif-name">{isEn ? "All Web Streams (HLS / m3u8)" : "Tüm Web Siteleri (HLS / m3u8)"}</div>
-                      <div className="snif-spec">{isEn ? "Series / Movie Segment Merger" : "Dizi / Film / Canlı Yayın Segment Birleştirici"}</div>
-                    </div>
-                    <button
-                      className="liquid-btn-grab"
-                      onClick={() => {
-                        setShowSnifferModal(true);
-                      }}
-                    >
-                      Aç
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Bottom-Left: Downloaded Files Card with Search & Folder/Trash actions */}
-            <div className="liquid-card downloaded-files-card">
-              <div className="liquid-card-header">
-                <div className="header-left">
-                  <button
-                    className="liquid-btn-clear-history"
-                    title={isEn ? 'Clear completed history' : 'Tamamlanan geçmişi temizle'}
-                    onClick={handleClearCompleted}
-                  >
-                    <Trash2 size={12} />
-                    <span>{isEn ? 'Clear' : 'Temizle'}</span>
-                  </button>
-                  <CheckCircle2 size={16} className="text-emerald" />
-                  <h3>{isEn ? 'History' : 'Geçmiş'}</h3>
-                  <span className="liquid-badge-counter">{completedDownloads.length}</span>
-                </div>
-                <div className="liquid-search-box">
-                  <Search size={12} className="text-muted" />
-                  <input
-                    type="text"
-                    placeholder={isEn ? 'Search files...' : 'Dosya ara...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="liquid-files-scroll">
-                {filteredDownloads.length > 0 ? (
-                  filteredDownloads.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`liquid-file-row ${item.id === selectedId ? 'selected' : ''}`}
-                      onClick={() => setSelectedId(item.id)}
-                      onDoubleClick={() => {
-                        if (item.status === 'completed') {
-                          window.idmApi?.openFile(item.savePath);
-                        }
-                      }}
-                    >
-                      <div className="file-cat-icon">
-                        {item.category === 'music' ? (
-                          <Music size={14} className="text-rose" />
-                        ) : (
-                          <Film size={14} className="text-sky" />
-                        )}
-                      </div>
-
-                      <div className="file-meta-col">
-                        <span className="file-row-name" title={item.fileName}>
-                          {item.fileName}
-                        </span>
-                        <div className="file-row-sub">
-                          <span>{formatBytes(item.totalBytes || item.downloadedBytes, lang)}</span>
-                          <span className="sep-bullet">•</span>
-                          <span className={`file-status-tag status-${item.status}`}>
-                            {item.status === 'completed'
-                              ? isEn ? 'Finished' : 'Tamamlandı'
-                              : item.status === 'downloading'
-                              ? isEn ? 'Downloading' : 'İndiriliyor'
-                              : item.status}
+                        <div className="file-meta-col">
+                          <span className="file-row-name" title={item.fileName}>
+                            {item.fileName}
                           </span>
+                          <div className="file-row-sub">
+                            <span>{formatBytes(item.totalBytes || item.downloadedBytes, lang)}</span>
+                            <span className="sep-bullet">•</span>
+                            <span className={`file-status-tag status-${item.status}`}>
+                              {item.status === 'completed'
+                                ? isEn ? 'Finished' : 'Tamamlandı'
+                                : item.status === 'downloading'
+                                ? isEn ? 'Downloading' : 'İndiriliyor'
+                                : item.status}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Folder open & Delete icons */}
-                      <div className="file-row-actions">
-                        {item.status === 'completed' && (
+                        <div className="file-row-actions">
+                          {item.status === 'completed' && (
+                            <button
+                              className="liquid-action-icon"
+                              title={isEn ? 'Open File' : 'Dosyayı Aç'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.idmApi?.openFile(item.savePath);
+                              }}
+                            >
+                              <ExternalLink size={13} />
+                            </button>
+                          )}
                           <button
                             className="liquid-action-icon"
-                            title={isEn ? 'Open File' : 'Dosyayı Aç'}
+                            title={isEn ? 'Show in Finder' : 'Dosyada Aç (Finder)'}
                             onClick={(e) => {
                               e.stopPropagation();
-                              window.idmApi?.openFile(item.savePath);
+                              window.idmApi?.openFileLocation(item.savePath);
                             }}
                           >
-                            <ExternalLink size={13} />
+                            <FolderOpen size={13} />
                           </button>
-                        )}
-                        <button
-                          className="liquid-action-icon"
-                          title={isEn ? 'Show in Finder' : 'Dosyada Aç (Finder)'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.idmApi?.openFileLocation(item.savePath);
-                          }}
-                        >
-                          <FolderOpen size={13} />
-                        </button>
-                        <button
-                          className="liquid-action-icon danger"
-                          title={isEn ? 'Delete' : 'Sil'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(item.id, false);
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                          <button
+                            className="liquid-action-icon danger"
+                            title={isEn ? 'Delete' : 'Sil'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(item.id, false);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="liquid-empty-notice">
+                      <CheckCircle2 size={24} className="text-muted" />
+                      <span>{isEn ? 'No files found' : 'İndirilen dosya bulunamadı'}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="liquid-empty-notice">
-                    <CheckCircle2 size={24} className="text-muted" />
-                    <span>{isEn ? 'No files found' : 'İndirilen dosya bulunamadı'}</span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Bottom-Right: Chrome Extension Compact Square Card */}
-            <div className="liquid-card extension-square-card">
-              <div className="ext-square-icon-wrap">
-                <Globe size={26} className={extensionStatus.isInstalled ? 'text-emerald' : 'text-amber'} />
+            {/* Right Column: Tall Media Sniffer Radar + Slim Bottom Extension Card */}
+            <div className="liquid-right-column">
+              <div className="liquid-card sniffer-radar-card">
+                <div className="liquid-card-header">
+                  <div className="header-left">
+                    <Radar size={16} className="text-neon-cyan" />
+                    <h3>Media Sniffer Radar</h3>
+                  </div>
+                  <div className="radar-live-tag">
+                    <span className="live-pulse-dot" />
+                    <span>{sniffedItems.length > 0 ? (isEn ? `${sniffedItems.length} Live Streams` : `${sniffedItems.length} Canlı Akış`) : (isEn ? 'Radar Active' : 'Radar Aktif')}</span>
+                  </div>
+                </div>
+
+                <div className="sniffer-items-list">
+                  {sniffedItems.length > 0 && (
+                    <div className="snif-stream-group">
+                      <div className="snif-sub-label">{isEn ? 'CAPTURED LIVE STREAMS' : 'YAKALANAN CANLI AKIŞLAR'}</div>
+                      {sniffedItems.slice(0, 3).map((sItem) => (
+                        <div key={sItem.id} className="snif-row-tile">
+                          <div className="snif-tile-icon">
+                            {sItem.url.includes('youtube') || sItem.pageUrl.includes('youtube') ? (
+                              <span className="badge-yt">YT</span>
+                            ) : sItem.url.includes('tiktok') ? (
+                              <span className="badge-tt">TT</span>
+                            ) : (
+                              <Film size={14} />
+                            )}
+                          </div>
+                          <div className="snif-tile-text">
+                            <div className="snif-name" title={sItem.pageTitle}>
+                              {sItem.pageTitle || (isEn ? 'Live Media Stream' : 'Canlı Medya Akışı')}
+                            </div>
+                            <div className="snif-spec">
+                              {sItem.ext?.toUpperCase() || 'VIDEO'} • {sItem.resolution || (sItem.sizeBytes ? formatBytes(sItem.sizeBytes, lang) : 'Stream')}
+                            </div>
+                          </div>
+                          <button
+                            className="liquid-btn-grab"
+                            onClick={async () => {
+                              const isHls = sItem.ext === 'm3u8' || sItem.url.includes('.m3u8');
+                              await handleAddDownload({
+                                url: sItem.url,
+                                fileName: `${sItem.pageTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${isHls ? 'mp4' : sItem.ext || 'mp4'}`,
+                                connectionsCount: 16,
+                                sourceType: isHls ? 'hls' : 'direct',
+                                headers: sItem.headers,
+                                autoStart: true,
+                              });
+                            }}
+                          >
+                            Grab
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="snif-stream-group">
+                    <div className="snif-sub-label">{isEn ? 'SUPPORTED PLATFORMS' : 'DESTEKLENEN PLATFORMLAR'}</div>
+                    
+                    {/* 1. YouTube */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-yt">YT</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">YouTube</div>
+                        <div className="snif-spec">{isEn ? '4K 60fps • HDR • Shorts • Auto Token' : '4K 60fps • HDR • Shorts • Otomatik Token'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('https://www.youtube.com');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 2. Instagram */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-ig">IG</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">Instagram</div>
+                        <div className="snif-spec">{isEn ? 'Reels • Stories • Posts • 1080p' : 'Reels • Hikayeler • Gönderiler • 1080p'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 3. TikTok */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-tt">TT</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">TikTok</div>
+                        <div className="snif-spec">{isEn ? 'Watermark-Free HD • Audio Tracks' : 'Filigransız HD • Ses Parçaları'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 4. Twitter / X */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-x">𝕏</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">Twitter / 𝕏</div>
+                        <div className="snif-spec">{isEn ? 'Max Resolution • GIF & Video' : 'Maksimum Çözünürlük • GIF & Video'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 5. SoundCloud */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-sc">SC</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">SoundCloud</div>
+                        <div className="snif-spec">{isEn ? '320kbps MP3 • Lossless FLAC / WAV' : '320kbps MP3 • Orijinal FLAC / WAV'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setConverterInitialUrl('');
+                          setShowConverterModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 6. Facebook */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-fb">FB</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">Facebook</div>
+                        <div className="snif-spec">{isEn ? 'Watch Videos • Reels • 1080p' : 'Watch Videoları • Reels • 1080p'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 7. Twitch */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-tw">TW</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">Twitch</div>
+                        <div className="snif-spec">{isEn ? 'Clips • Past Broadcasts 1080p60' : 'Klipler • VOD Geçmiş Yayınlar 1080p60'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 8. Vimeo */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-vm">VM</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">Vimeo</div>
+                        <div className="snif-spec">{isEn ? '4K / 2K Pro Media Streams' : '4K / 2K Pro Medya Akışları'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setModalInitialUrl('');
+                          setShowVideoModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+
+                    {/* 9. Evrensel Web HLS / M3U8 */}
+                    <div className="snif-row-tile">
+                      <div className="snif-tile-icon badge-hls">HLS</div>
+                      <div className="snif-tile-text">
+                        <div className="snif-name">{isEn ? 'All Web Streams (HLS / m3u8)' : 'Tüm Web Siteleri (HLS / m3u8)'}</div>
+                        <div className="snif-spec">{isEn ? 'Series / Movie Segment Merger' : 'Dizi / Film / Canlı Yayın Segment Birleştirici'}</div>
+                      </div>
+                      <button
+                        className="liquid-btn-grab"
+                        onClick={() => {
+                          setShowSnifferModal(true);
+                        }}
+                      >
+                        {isEn ? 'Open' : 'Aç'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <h4 className="ext-square-title">{isEn ? 'Chrome Extension' : 'Chrome Eklentisi'}</h4>
+              {/* Slim Bottom Chrome Extension Bar */}
+              <div className="liquid-card extension-square-card">
+                <div className="ext-compact-left">
+                  <div className="ext-square-icon-wrap">
+                    <Globe size={18} className={extensionStatus.isInstalled ? 'text-emerald' : 'text-amber'} />
+                  </div>
+                  <div>
+                    <h4 className="ext-square-title">{isEn ? 'Chrome Extension' : 'Chrome Eklentisi'}</h4>
+                    <div className={`ext-status-capsule ${extensionStatus.isInstalled ? 'installed' : 'missing'}`}>
+                      <span className="status-dot" />
+                      <span>
+                        {extensionStatus.isInstalled
+                          ? (isEn ? 'INSTALLED' : 'KURULU')
+                          : (isEn ? 'NOT INSTALLED' : 'KURULU DEĞİL')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-              <div className={`ext-status-capsule ${extensionStatus.isInstalled ? 'installed' : 'missing'}`}>
-                <span className="status-dot" />
-                <span>
-                  {extensionStatus.isInstalled
-                    ? (isEn ? 'INSTALLED' : 'KURULU')
-                    : (isEn ? 'NOT INSTALLED' : 'KURULU DEĞİL')}
-                </span>
+                <div className="ext-compact-right">
+                  <button
+                    className="liquid-btn-ext-install"
+                    onClick={handleStartExtensionInstall}
+                  >
+                    <Zap size={12} />
+                    <span>{extensionStatus.isInstalled ? (isEn ? 'Reinstall' : 'Yeniden Kur') : (isEn ? 'Install Extension' : 'Eklentiyi Kur')}</span>
+                  </button>
+                </div>
               </div>
-
-              <button
-                className="liquid-btn-ext-install"
-                onClick={handleStartExtensionInstall}
-              >
-                <Zap size={13} />
-                <span>{extensionStatus.isInstalled ? (isEn ? 'Reinstall' : 'Yeniden Kur') : (isEn ? 'Install Extension' : 'Eklentiyi Kur')}</span>
-              </button>
             </div>
           </div>
 
