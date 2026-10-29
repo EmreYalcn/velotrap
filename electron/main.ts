@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, dialog, clipboard } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog, clipboard, Menu } from 'electron';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -13,6 +13,25 @@ app.setName('Velotrap');
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  } else {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    if (!mainWindow.isVisible()) mainWindow.show();
+    mainWindow.focus();
+  }
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    showMainWindow();
+  });
+}
 let downloadEngine: DownloadEngine;
 let videoEngine: VideoEngine;
 let snifferEngine: SnifferEngine;
@@ -198,13 +217,7 @@ function startCompanionHttpBridge(): void {
 
     if (req.method === 'POST' && url === '/api/focus') {
       try {
-        if (!mainWindow || mainWindow.isDestroyed()) {
-          createWindow();
-        } else {
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.show();
-          mainWindow.focus();
-        }
+        showMainWindow();
         app.focus({ steal: true });
         // Force bring Electron to the foreground on macOS
         if (process.platform === 'darwin') {
@@ -514,6 +527,17 @@ app.whenReady().then(() => {
         app.dock.setIcon(iconPath);
       } catch {}
     }
+    try {
+      const dockMenu = Menu.buildFromTemplate([
+        {
+          label: 'Velotrap Penceresini Göster',
+          click() {
+            showMainWindow();
+          },
+        },
+      ]);
+      app.dock.setMenu(dockMenu);
+    } catch {}
   }
 
   const stateDir = path.join(app.getPath('userData'), 'idm-pro-state');
@@ -702,7 +726,7 @@ app.whenReady().then(() => {
   setupWorkspaceE2EBridge();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    showMainWindow();
   });
 });
 
