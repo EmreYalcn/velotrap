@@ -516,104 +516,221 @@ export function App() {
                 </div>
                 <div className="radar-live-tag">
                   <span className="live-pulse-dot" />
-                  <span>Live</span>
+                  <span>{sniffedItems.length > 0 ? `${sniffedItems.length} Canlı Akış` : 'Radar Aktif'}</span>
                 </div>
               </div>
 
+              {/* Supported Platforms & Live Captured Streams Deck */}
               <div className="sniffer-items-list">
-                {sniffedItems.length > 0 ? (
-                  sniffedItems.slice(0, 4).map((sItem) => (
-                    <div key={sItem.id} className="snif-row-tile">
-                      <div className="snif-tile-icon">
-                        {sItem.url.includes('youtube') || sItem.pageUrl.includes('youtube') ? (
-                          <span className="badge-yt">YT</span>
-                        ) : sItem.url.includes('tiktok') ? (
-                          <span className="badge-tt">TT</span>
-                        ) : (
-                          <Film size={14} />
-                        )}
-                      </div>
-                      <div className="snif-tile-text">
-                        <div className="snif-name" title={sItem.pageTitle}>
-                          {sItem.pageTitle || 'Canlı Medya Akışı'}
+                {sniffedItems.length > 0 && (
+                  <div className="snif-stream-group">
+                    <div className="snif-sub-label">YAKALANAN CANLI AKIŞLAR</div>
+                    {sniffedItems.slice(0, 3).map((sItem) => (
+                      <div key={sItem.id} className="snif-row-tile">
+                        <div className="snif-tile-icon">
+                          {sItem.url.includes('youtube') || sItem.pageUrl.includes('youtube') ? (
+                            <span className="badge-yt">YT</span>
+                          ) : sItem.url.includes('tiktok') ? (
+                            <span className="badge-tt">TT</span>
+                          ) : (
+                            <Film size={14} />
+                          )}
                         </div>
-                        <div className="snif-spec">
-                          {sItem.ext?.toUpperCase() || 'VIDEO'} • {sItem.resolution || (sItem.sizeBytes ? formatBytes(sItem.sizeBytes, lang) : 'Stream')}
+                        <div className="snif-tile-text">
+                          <div className="snif-name" title={sItem.pageTitle}>
+                            {sItem.pageTitle || 'Canlı Medya Akışı'}
+                          </div>
+                          <div className="snif-spec">
+                            {sItem.ext?.toUpperCase() || 'VIDEO'} • {sItem.resolution || (sItem.sizeBytes ? formatBytes(sItem.sizeBytes, lang) : 'Stream')}
+                          </div>
                         </div>
+                        <button
+                          className="liquid-btn-grab"
+                          onClick={async () => {
+                            const isHls = sItem.ext === 'm3u8' || sItem.url.includes('.m3u8');
+                            await handleAddDownload({
+                              url: sItem.url,
+                              fileName: `${sItem.pageTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${isHls ? 'mp4' : sItem.ext || 'mp4'}`,
+                              connectionsCount: 16,
+                              sourceType: isHls ? 'hls' : 'direct',
+                              headers: sItem.headers,
+                              autoStart: true,
+                            });
+                          }}
+                        >
+                          Grab
+                        </button>
                       </div>
-                      <button
-                        className="liquid-btn-grab"
-                        onClick={async () => {
-                          const isHls = sItem.ext === 'm3u8' || sItem.url.includes('.m3u8');
-                          await handleAddDownload({
-                            url: sItem.url,
-                            fileName: `${sItem.pageTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${isHls ? 'mp4' : sItem.ext || 'mp4'}`,
-                            connectionsCount: 16,
-                            sourceType: isHls ? 'hls' : 'direct',
-                            headers: sItem.headers,
-                            autoStart: true,
-                          });
-                        }}
-                      >
-                        Grab
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <>
-                    <div className="snif-row-tile">
-                      <div className="snif-tile-icon badge-yt">YT</div>
-                      <div className="snif-tile-text">
-                        <div className="snif-name">YouTube</div>
-                        <div className="snif-spec">4K 60fps • Otomatik</div>
-                      </div>
-                      <button
-                        className="liquid-btn-grab"
-                        onClick={() => {
-                          setModalInitialUrl('https://www.youtube.com');
-                          setShowVideoModal(true);
-                        }}
-                      >
-                        Grab
-                      </button>
-                    </div>
-                    <div className="snif-row-tile">
-                      <div className="snif-tile-icon badge-tt">TT</div>
-                      <div className="snif-tile-text">
-                        <div className="snif-name">TikTok / Reels</div>
-                        <div className="snif-spec">1080p • Filigransız</div>
-                      </div>
-                      <button
-                        className="liquid-btn-grab"
-                        onClick={() => {
-                          setModalInitialUrl('');
-                          setShowVideoModal(true);
-                        }}
-                      >
-                        Grab
-                      </button>
-                    </div>
-                    <div className="snif-row-tile">
-                      <div className="snif-tile-icon badge-sc">SC</div>
-                      <div className="snif-tile-text">
-                        <div className="snif-name">SoundCloud / X</div>
-                        <div className="snif-spec">FLAC / MP3 • Canlı</div>
-                      </div>
-                      <button
-                        className="liquid-btn-grab"
-                        onClick={() => {
-                          setConverterInitialUrl('');
-                          setShowConverterModal(true);
-                        }}
-                      >
-                        Grab
-                      </button>
-                    </div>
-                  </>
+                    ))}
+                  </div>
                 )}
+
+                <div className="snif-stream-group">
+                  <div className="snif-sub-label">DESTEKLENEN PLATFORMLAR</div>
+                  
+                  {/* 1. YouTube */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-yt">YT</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">YouTube</div>
+                      <div className="snif-spec">4K 60fps • HDR • Shorts • Otomatik Token</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('https://www.youtube.com');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 2. Instagram */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-ig">IG</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Instagram</div>
+                      <div className="snif-spec">Reels • Hikayeler • Gönderiler • 1080p</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 3. TikTok */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-tt">TT</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">TikTok</div>
+                      <div className="snif-spec">Filigransız HD • Ses Parçaları</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 4. Twitter / X */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-x">𝕏</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Twitter / 𝕏</div>
+                      <div className="snif-spec">Maksimum Çözünürlük • GIF & Video</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 5. SoundCloud */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-sc">SC</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">SoundCloud</div>
+                      <div className="snif-spec">320kbps MP3 • Orijinal FLAC / WAV</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setConverterInitialUrl('');
+                        setShowConverterModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 6. Facebook */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-fb">FB</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Facebook</div>
+                      <div className="snif-spec">Watch Videoları • Reels • 1080p</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 7. Twitch */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-tw">TW</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Twitch</div>
+                      <div className="snif-spec">Klipler • VOD Geçmiş Yayınlar 1080p60</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 8. Vimeo */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-vm">VM</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Vimeo</div>
+                      <div className="snif-spec">4K / 2K Pro Medya Akışları</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setModalInitialUrl('');
+                        setShowVideoModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+
+                  {/* 9. Evrensel Web HLS / M3U8 */}
+                  <div className="snif-row-tile">
+                    <div className="snif-tile-icon badge-hls">HLS</div>
+                    <div className="snif-tile-text">
+                      <div className="snif-name">Tüm Web Siteleri (HLS / m3u8)</div>
+                      <div className="snif-spec">Dizi / Film / Canlı Yayın Segment Birleştirici</div>
+                    </div>
+                    <button
+                      className="liquid-btn-grab"
+                      onClick={() => {
+                        setShowSnifferModal(true);
+                      }}
+                    >
+                      Aç
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-
             {/* Bottom-Left: Downloaded Files Card with Search & Folder/Trash actions */}
             <div className="liquid-card downloaded-files-card">
               <div className="liquid-card-header">

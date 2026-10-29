@@ -3513,3 +3513,48 @@ html,
   color: #ffffff;
   transform: translateY(-1px);
 }
+
+/* Additional Platform Badges & Sniffer Scroll */
+.snif-stream-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.snif-sub-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  padding: 2px 4px 4px 4px;
+}
+
+.badge-ig {
+  background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+}
+
+.badge-x {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-family: serif;
+  font-weight: 900;
+}
+
+.badge-fb {
+  background: #1877f2;
+}
+
+.badge-tw {
+  background: #9146ff;
+}
+
+.badge-vm {
+  background: #1ab7ea;
+}
+
+.badge-hls {
+  background: linear-gradient(135deg, #059669, #0284c7);
+  font-size: 9px;
+  font-weight: 900;
+}
