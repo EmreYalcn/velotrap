@@ -511,14 +511,56 @@ function startCompanionHttpBridge(): void {
   });
 }
 
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
+
+interface WindowBounds {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  isMaximized?: boolean;
+}
+
+const windowStateFilePath = path.join(app.getPath('userData'), 'window-state.json');
+
+function loadWindowState(): WindowBounds {
+  const defaultBounds: WindowBounds = {
     width: 1320,
     height: 840,
+  };
+  try {
+    if (fs.existsSync(windowStateFilePath)) {
+      const data = JSON.parse(fs.readFileSync(windowStateFilePath, 'utf8'));
+      return { ...defaultBounds, ...data };
+    }
+  } catch {}
+  return defaultBounds;
+}
+
+function saveWindowState(win: BrowserWindow): void {
+  try {
+    if (!win || win.isDestroyed()) return;
+    const isMax = win.isMaximized();
+    if (!isMax) {
+      const bounds = win.getBounds();
+      fs.writeFileSync(windowStateFilePath, JSON.stringify({ ...bounds, isMaximized: false }), 'utf8');
+    } else {
+      fs.writeFileSync(windowStateFilePath, JSON.stringify({ isMaximized: true }), 'utf8');
+    }
+  } catch {}
+}
+
+function createWindow(): void {
+  const savedState = loadWindowState();
+
+  mainWindow = new BrowserWindow({
+    width: savedState.width || 1320,
+    height: savedState.height || 840,
+    x: savedState.x,
+    y: savedState.y,
     minWidth: 1024,
     minHeight: 680,
     title: 'Velotrap — Ultra Hızlı Medya & İndirme Yöneticisi',
-    backgroundColor: '#0b0f19',
+    backgroundColor: '#010206',
     icon: path.join(__dirname, '../public/logo.png'),
     titleBarStyle: 'hiddenInset',
     webPreferences: {
@@ -527,6 +569,24 @@ function createWindow(): void {
       contextIsolation: true,
     },
   });
+
+  if (savedState.isMaximized) {
+    mainWindow.maximize();
+  }
+
+  // Save bounds on resize and move (debounced)
+  let saveTimer: NodeJS.Timeout | null = null;
+  const triggerSave = () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        saveWindowState(mainWindow);
+      }
+    }, 400);
+  };
+
+  mainWindow.on('resize', triggerSave);
+  mainWindow.on('move', triggerSave);
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (devServerUrl) {
