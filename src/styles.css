@@ -3764,3 +3764,172 @@ html,
 .theme-thumb-icon {
   pointer-events: none;
 }
+
+/* Comprehensive Light Theme Contrast & Legibility Overrides */
+.theme-liquid-light {
+  --text-main: #0f172a !important;
+  --text-secondary: #334155 !important;
+  --text-muted: #64748b !important;
+}
+
+.theme-liquid-light .liquid-brand-ver,
+.theme-liquid-light .disk-label,
+.theme-liquid-light .disk-free,
+.theme-liquid-light .liquid-section-label,
+.theme-liquid-light .nav-count,
+.theme-liquid-light .snif-sub-label,
+.theme-liquid-light .bytes-total,
+.theme-liquid-light .stat-eta,
+.theme-liquid-light .bottom-status-pill,
+.theme-liquid-light .file-row-sub span {
+  color: #475569 !important;
+}
+
+.theme-liquid-light .liquid-brand-title,
+.theme-liquid-light .nav-title,
+.theme-liquid-light .strip-title,
+.theme-liquid-light .header-left h3,
+.theme-liquid-light .file-row-name,
+.theme-liquid-light .ext-square-title,
+.theme-liquid-light .snif-name,
+.theme-liquid-light .bytes-downloaded {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+.theme-liquid-light .strip-desc {
+  color: #475569 !important;
+}
+
+.theme-liquid-light .strip-input-bar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+.theme-liquid-light .strip-input-field {
+  color: #0f172a !important;
+}
+
+.theme-liquid-light .strip-input-field::placeholder {
+  color: #94a3b8 !important;
+}
+
+.theme-liquid-light .strip-input-icon {
+  color: #64748b !important;
+}
+
+.theme-liquid-light .liquid-search-box {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+.theme-liquid-light .liquid-search-box input {
+  color: #0f172a !important;
+}
+
+.theme-liquid-light .liquid-search-box input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.theme-liquid-light .liquid-btn-glass-queue {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.14) !important;
+  color: #1e293b !important;
+}
+
+.theme-liquid-light .liquid-btn-glass-queue:hover {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: #000000 !important;
+}
+
+.theme-liquid-light .liquid-btn-grab {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+}
+
+.theme-liquid-light .liquid-btn-grab:hover {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+.theme-liquid-light .liquid-action-icon {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #334155 !important;
+}
+
+.theme-liquid-light .liquid-action-icon:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+}
+
+.theme-liquid-light .liquid-action-icon.danger {
+  color: #dc2626 !important;
+}
+
+.theme-liquid-light .liquid-action-icon.danger:hover {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+.theme-liquid-light .liquid-badge-counter {
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: #334155 !important;
+}
+
+.theme-liquid-light .liquid-disk-pill {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-liquid-light .ext-square-icon-wrap {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-liquid-light .liquid-file-row {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.theme-liquid-light .liquid-file-row:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.theme-liquid-light .liquid-file-row.selected {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.theme-liquid-light .snif-row-tile {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.theme-liquid-light .snif-row-tile:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.theme-liquid-light .file-cat-icon {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-liquid-light .liquid-speed-capsule {
+  background: rgba(2, 132, 199, 0.1) !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  color: #0284c7 !important;
+}
+
+.theme-liquid-light .strip-tag-pill {
+  background: rgba(2, 132, 199, 0.1) !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+  color: #0284c7 !important;
+}
+
+.theme-liquid-light .strip-tag-pill.audio-pill {
+  background: rgba(219, 39, 119, 0.1) !important;
+  border-color: rgba(219, 39, 119, 0.3) !important;
+  color: #db2777 !important;
+}
