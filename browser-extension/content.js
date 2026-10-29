@@ -1168,6 +1168,9 @@
     return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
   }
 
+  const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+  const TIKTOK_STREAM_REGEX = /(?:\/video\/tos\/|[\?&]mime_type=(?:video|audio)|\.tiktokcdn\.com\/|\.byteoversea\.com\/|\.ibytedtos\.com\/)/i;
+
   /**
    * Scans Performance API + DOM + page-hook for all .m3u8 / .mp4 stream URLs in this frame
    */
@@ -1181,9 +1184,11 @@
         const name = r.name || '';
         if (!name.startsWith('http')) continue;
         if (name.includes('googlevideo.com/videoplayback')) continue;
+        if (EXCLUDE_STREAM_REGEX.test(name)) continue;
         if (
           /\.(m3u8|mp4|webm|mkv|mov|flv|m4a|mp3)(\?|$|#)/i.test(name) ||
-          name.toLowerCase().includes('.m3u8')
+          name.toLowerCase().includes('.m3u8') ||
+          TIKTOK_STREAM_REGEX.test(name)
         ) {
           streams.add(name);
         }
@@ -1193,15 +1198,18 @@
     // 2. Check <video> and <source> elements
     if (videoEl) {
       const rawSrc = videoEl.currentSrc || videoEl.src || '';
-      if (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) {
+      if (
+        (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) &&
+        !EXCLUDE_STREAM_REGEX.test(rawSrc)
+      ) {
         streams.add(rawSrc);
       }
       videoEl.querySelectorAll('source[src^="http"]').forEach((s) => {
-        if (s.src) streams.add(s.src);
+        if (s.src && !EXCLUDE_STREAM_REGEX.test(s.src)) streams.add(s.src);
       });
     }
 
-    return Array.from(streams);
+    return Array.from(streams).filter((u) => !EXCLUDE_STREAM_REGEX.test(u));
   }
 
   function extractVideoContext(videoEl) {
@@ -1295,9 +1303,42 @@
           targetUrl = parsedYt.toString();
         }
       } catch {}
+    } else if (hostName.includes('tiktok.com')) {
+      let foundTiktokLink = '';
+      if (/\/video\/\d+/.test(window.location.href)) {
+        foundTiktokLink = window.location.href.split('?')[0];
+      } else {
+        let cur = videoEl;
+        while (cur && cur !== document.body) {
+          const a = cur.querySelector && cur.querySelector('a[href*="/video/"]');
+          if (a && a.href && /\/video\/\d+/.test(a.href)) {
+            foundTiktokLink = a.href.split('?')[0];
+            break;
+          }
+          cur = cur.parentElement;
+        }
+      }
+      if (foundTiktokLink) targetUrl = foundTiktokLink;
+
+      let cur = videoEl;
+      while (cur && cur !== document.body) {
+        const descEl = cur.querySelector && cur.querySelector(
+          '[data-e2e="video-desc"], [data-e2e="browse-video-desc"], h1[data-e2e="video-title"], [class*="DivTextContainer"], [class*="SpanText"]'
+        );
+        if (descEl && descEl.innerText && descEl.innerText.trim()) {
+          title = descEl.innerText.trim().slice(0, 80);
+          break;
+        }
+        cur = cur.parentElement;
+      }
+      if (!title || title === 'Video' || /tiktok/i.test(title)) {
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle && ogTitle.getAttribute('content')) {
+          title = ogTitle.getAttribute('content').replace(/\s*\|\s*TikTok$/i, '').trim();
+        }
+      }
     } else if (
       hostName.includes('instagram.com') ||
-      hostName.includes('tiktok.com') ||
       hostName.includes('reddit.com')
     ) {
       const container = videoEl.closest(
@@ -1316,10 +1357,21 @@
     const discoveredStreams = collectAllPageStreams(videoEl);
     let videoSrc = '';
     const rawSrc = videoEl.currentSrc || videoEl.src || '';
-    if (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) {
+    if (
+      (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) &&
+      !EXCLUDE_STREAM_REGEX.test(rawSrc)
+    ) {
       videoSrc = rawSrc;
     } else if (discoveredStreams.length > 0) {
-      videoSrc = discoveredStreams[0];
+      const preferredStream = discoveredStreams.find(
+        (u) =>
+          u.includes('/video/tos/') ||
+          /[\?&]mime_type=(?:video|audio)/i.test(u) ||
+          u.includes('.tiktokcdn.com/') ||
+          u.includes('.byteoversea.com/') ||
+          u.toLowerCase().includes('.m3u8')
+      );
+      videoSrc = preferredStream || discoveredStreams[0];
     }
 
     return {

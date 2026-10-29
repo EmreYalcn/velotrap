@@ -147,7 +147,11 @@ chrome.webRequest.onHeadersReceived.addListener(
       pathname.endsWith('.woff2') ||
       pathname.endsWith('.css') ||
       pathname.endsWith('.js') ||
-      url.includes('googlevideo.com/videoplayback')
+      pathname.endsWith('.json') ||
+      url.includes('googlevideo.com/videoplayback') ||
+      url.includes('sf16-website-login') ||
+      url.includes('tiktok_web_login_static') ||
+      url.includes('playback1.mp4')
     ) {
       return;
     }
@@ -167,7 +171,10 @@ chrome.webRequest.onHeadersReceived.addListener(
       contentType.includes('mpegurl') ||
       contentType.includes('vnd.apple.mpegurl');
 
-    const isMediaExt = /\.(mp4|webm|mkv|mov|flv|avi|mp3|m4a|wav|aac|ogg)$/i.test(pathname);
+    const isMediaExt =
+      /\.(mp4|webm|mkv|mov|flv|avi|mp3|m4a|wav|aac|ogg)$/i.test(pathname) ||
+      /[\?&]mime_type=(?:video|audio)/i.test(url) ||
+      url.includes('/video/tos/');
     const isMediaMime =
       contentType.startsWith('video/') ||
       contentType.startsWith('audio/') ||
@@ -215,6 +222,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'REPORT_SNIFFED_STREAM') {
     if (tabId >= 0 && message.url) {
       const u = String(message.url);
+      if (
+        u.includes('sf16-website-login') ||
+        u.includes('tiktok_web_login_static') ||
+        u.includes('playback1.mp4') ||
+        /\.json(\?|$)/i.test(u)
+      ) {
+        sendResponse({ ok: false });
+        return false;
+      }
       const isM3u8 = u.toLowerCase().includes('.m3u8');
       registerTabStream(
         tabId,

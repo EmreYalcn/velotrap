@@ -244,13 +244,16 @@ function startCompanionHttpBridge(): void {
           if (url === '/api/analyze') {
             const targetUrl = String(payload.url || '').trim();
             const videoSrc = String(payload.videoSrc || '').trim();
+            const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
             const sniffedStreams: Array<{
               url: string;
               ext?: string;
               sizeBytes?: number;
               mimeType?: string;
               headers?: Record<string, string>;
-            }> = Array.isArray(payload.sniffedStreams) ? payload.sniffedStreams : [];
+            }> = (Array.isArray(payload.sniffedStreams) ? payload.sniffedStreams : []).filter(
+              (s: any) => s && s.url && !EXCLUDE_STREAM_REGEX.test(s.url)
+            );
             const reqHeaders: Record<string, string> = payload.headers || {};
 
             const cacheKey = `${targetUrl}|${videoSrc}|${sniffedStreams.map((s) => s.url).join(',')}`;
@@ -426,8 +429,21 @@ function startCompanionHttpBridge(): void {
             return;
           }
 
+          const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+          let targetUrl = payload.url;
+          const cleanFallbacks = (Array.isArray(payload.fallbackStreamUrls) ? payload.fallbackStreamUrls : []).filter(
+            (u: any) => typeof u === 'string' && !EXCLUDE_STREAM_REGEX.test(u)
+          );
+          if (EXCLUDE_STREAM_REGEX.test(targetUrl)) {
+            if (cleanFallbacks.length > 0) {
+              targetUrl = cleanFallbacks[0];
+            } else if (payload.pageUrl && !EXCLUDE_STREAM_REGEX.test(payload.pageUrl)) {
+              targetUrl = payload.pageUrl;
+            }
+          }
+
           const item = await downloadEngine.addDownload({
-            url: payload.url,
+            url: targetUrl,
             fileName: payload.fileName,
             saveDir: payload.saveDir,
             connectionsCount:
@@ -436,7 +452,7 @@ function startCompanionHttpBridge(): void {
               16,
             headers: payload.headers,
             pageUrl: payload.pageUrl,
-            fallbackStreamUrls: payload.fallbackStreamUrls,
+            fallbackStreamUrls: cleanFallbacks,
             sourceType: payload.sourceType || 'direct',
             videoFormatId: payload.videoFormatId,
             videoResolution: payload.videoResolution,

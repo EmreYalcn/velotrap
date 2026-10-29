@@ -312,9 +312,9 @@ export class DownloadEngine extends EventEmitter {
           }
 
           if (!path.extname(fileName)) {
-            if (contentType.includes('video/mp4')) fileName += '.mp4';
+            if (contentType.includes('video/mp4') || targetUrl.includes('mime_type=video_mp4')) fileName += '.mp4';
             else if (contentType.includes('video/webm')) fileName += '.webm';
-            else if (contentType.includes('audio/mpeg')) fileName += '.mp3';
+            else if (contentType.includes('audio/mpeg') || targetUrl.includes('mime_type=audio_mp4')) fileName += '.mp3';
             else if (contentType.includes('application/pdf')) fileName += '.pdf';
             else if (contentType.includes('application/zip')) fileName += '.zip';
             else if (contentType.includes('mpegurl')) fileName += '.m3u8';
@@ -408,6 +408,12 @@ export class DownloadEngine extends EventEmitter {
           sourceType = 'hls';
         } else if (probe.mimeType.includes('text/html')) {
           sourceType = 'yt-dlp';
+        } else if (
+          probe.mimeType.includes('application/json') ||
+          probe.mimeType.includes('text/json') ||
+          /\.json(?:\?|$)/i.test(options.url)
+        ) {
+          throw new Error('Geçersiz medya bağlantısı (JSON verisi yakalandı)');
         } else {
           finalUrl = probe.finalUrl;
           if (!fileName) fileName = probe.fileName;
@@ -531,16 +537,18 @@ export class DownloadEngine extends EventEmitter {
     const fmtId = item.videoFormatId || 'best';
     const isAudioRequest = fmtId === 'bestaudio-mp3' || fmtId.startsWith('audio:');
 
+    const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+
     // Build candidate URLs to try in order:
-    // 1. Primary URL
-    // 2. Any fallback stream URLs (.m3u8 / .mp4) captured by the Chrome Extension in the tab/iframe
-    const candidateUrls: string[] = [item.url];
-    if (Array.isArray(item.fallbackStreamUrls)) {
-      for (const u of item.fallbackStreamUrls) {
-        if (!u || candidateUrls.includes(u)) continue;
-        if (u.includes('googlevideo.com/videoplayback') || /\.(ts|m4s)(\?|$)/i.test(u)) continue;
-        candidateUrls.push(u);
-      }
+    // 1. Primary URL (if not dummy asset)
+    // 2. Any fallback stream URLs (.m3u8 / .mp4 / TikTok CDN) captured by the Chrome Extension
+    const rawCandidates = [item.url, ...(item.fallbackStreamUrls || [])];
+    const candidateUrls: string[] = [];
+    for (const u of rawCandidates) {
+      if (!u || candidateUrls.includes(u)) continue;
+      if (EXCLUDE_STREAM_REGEX.test(u)) continue;
+      if (u.includes('googlevideo.com/videoplayback') || /\.(ts|m4s)(\?|$)/i.test(u)) continue;
+      candidateUrls.push(u);
     }
 
     let downloadedTempFile: string | null = null;
@@ -600,7 +608,9 @@ export class DownloadEngine extends EventEmitter {
               item.headers || {}
             );
             for (const s of scrapedStreams) {
-              if (!candidateUrls.includes(s)) candidateUrls.push(s);
+              if (!candidateUrls.includes(s) && !EXCLUDE_STREAM_REGEX.test(s)) {
+                candidateUrls.push(s);
+              }
             }
           }
         }
@@ -612,7 +622,12 @@ export class DownloadEngine extends EventEmitter {
       const streamTarget = candidateUrls.find(
         (u) =>
           u.toLowerCase().includes('.m3u8') ||
-          /\.(mp4|webm|mkv|mov|flv|mp3|m4a|ts)(\?|$)/i.test(u)
+          /\.(mp4|webm|mkv|mov|flv|mp3|m4a|ts)(\?|$)/i.test(u) ||
+          u.includes('/video/tos/') ||
+          /[\?&]mime_type=(?:video|audio)/i.test(u) ||
+          u.includes('.tiktokcdn.com/') ||
+          u.includes('.byteoversea.com/') ||
+          u.includes('.ibytedtos.com/')
       );
 
       if (streamTarget) {

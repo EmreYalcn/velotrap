@@ -178,8 +178,15 @@ export class VideoEngine {
       return this.analyzeHlsUrl(trimmed, customHeaders);
     }
 
-    // 2. Direct Media File (.mp4, .webm, .mkv, .mov, .mp3, .m4a, .flv)
-    if (/\.(mp4|webm|mkv|mov|avi|flv|mp3|m4a|wav|aac)$/i.test(pathnameLower)) {
+    // 2. Direct Media File (.mp4, .webm, .mkv, .mov, .mp3, .m4a, .flv, or TikTok/CDN stream)
+    if (
+      /\.(mp4|webm|mkv|mov|avi|flv|mp3|m4a|wav|aac)$/i.test(pathnameLower) ||
+      /[\?&]mime_type=(?:video|audio)/i.test(trimmed) ||
+      trimmed.includes('/video/tos/') ||
+      trimmed.includes('.tiktokcdn.com/') ||
+      trimmed.includes('.byteoversea.com/') ||
+      trimmed.includes('.ibytedtos.com/')
+    ) {
       const probe = await this.downloadEngine.probeUrl(trimmed, customHeaders);
       const ext = path.extname(probe.fileName).replace('.', '') || 'mp4';
       return {
