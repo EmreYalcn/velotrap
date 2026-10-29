@@ -1693,3 +1693,26 @@ html,
   align-items: center;
   gap: 4px;
 }
+
+.clip-hint-text {
+  font-size: 10.5px;
+  color: #a78bfa;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.clip-input.input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.clip-error-alert {
+  margin-top: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+}

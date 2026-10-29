@@ -382,6 +382,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             headers,
             focusWindow: Boolean(message.focusWindow),
             autoStart: true,
+            clipRange: message.clipRange,
           }),
         });
 
@@ -433,4 +434,3 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 injectIntoExistingTabs();
-

@@ -159,7 +159,11 @@ async function runTests() {
   assert.equal(parseTimeToSeconds('01:05:20'), 3920);
   assert.equal(parseTimeToSeconds('45'), 45);
   assert.equal(parseTimeToSeconds(''), 0);
+  assert.equal(parseTimeToSeconds('1h 30m'), 5400);
+  assert.equal(parseTimeToSeconds('1sa 29dk 30sn'), 5370);
+  assert.equal(parseTimeToSeconds('01:29:338'), 89.338);
   assert.equal(formatSecondsToTime(90), '01:30');
+  assert.equal(formatSecondsToTime(90, true), '00:01:30');
   assert.equal(formatSecondsToTime(3920), '01:05:20');
   console.log('   ✓ Clip & Download time parsing & formatting verified');
 

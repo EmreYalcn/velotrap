@@ -86,37 +86,77 @@ export const VideoGrabberModal: React.FC<Props> = ({
 
   const parseTimeToSeconds = (t: string): number => {
     if (!t) return 0;
-    const parts = t.trim().split(':').map((p) => parseFloat(p) || 0);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 60 + parts[1];
-    if (/^\d+(\.\d+)?$/.test(t.trim())) return parseFloat(t.trim());
+    let str = t.trim().toLowerCase().replace(',', '.');
+    const hMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|saat|sa\b|h\b)/i);
+    const mMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|dakika|dk\b|m\b)/i);
+    const sMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|saniye|sn\b|s\b)/i);
+    if (hMatch || mMatch || sMatch) {
+      const h = hMatch ? parseFloat(hMatch[1]) : 0;
+      const m = mMatch ? parseFloat(mMatch[1]) : 0;
+      const s = sMatch ? parseFloat(sMatch[1]) : 0;
+      return Math.max(0, h * 3600 + m * 60 + s);
+    }
+    if (/^\d+(?:\.\d+)?$/.test(str)) {
+      return Math.max(0, parseFloat(str));
+    }
+    const rawParts = str.split(':');
+    const parts = rawParts.map((p) => parseFloat(p) || 0);
+    if (parts.length === 3) {
+      if (rawParts[2].trim().length === 3 && parts[2] >= 60) {
+        return Math.max(0, parts[0] * 60 + parts[1] + parts[2] / 1000);
+      }
+      return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+    }
+    if (parts.length === 2) {
+      return Math.max(0, parts[0] * 60 + parts[1]);
+    }
     return 0;
   };
 
-  const formatSecondsToTime = (sec: number): string => {
+  const humanizeSeconds = (sec: number): string => {
+    if (sec <= 0) return '0 saniye';
+    const total = Math.floor(sec);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const parts = [];
+    if (h > 0) parts.push(`${h} saat`);
+    if (m > 0) parts.push(`${m} dk`);
+    if (s > 0 || parts.length === 0) parts.push(`${s} sn`);
+    return parts.join(' ');
+  };
+
+  const formatSecondsToTime = (sec: number, forceHours = false): string => {
     const total = Math.max(0, Math.floor(sec));
     const h = Math.floor(total / 3600);
     const m = Math.floor((total % 3600) / 60);
     const s = total % 60;
     const pad = (n: number) => String(n).padStart(2, '0');
-    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (h > 0 || forceHours) return `${pad(h)}:${pad(m)}:${pad(s)}`;
     return `${pad(m)}:${pad(s)}`;
   };
 
+  const startSec = useMemo(() => parseTimeToSeconds(clipStart), [clipStart]);
+  const endSec = useMemo(
+    () => (clipEnd ? parseTimeToSeconds(clipEnd) : 0),
+    [clipEnd]
+  );
+
+  const isInvalidRange = isClipEnabled && endSec > 0 && endSec <= startSec;
+
   const clipDurationSummary = useMemo(() => {
     if (!isClipEnabled) return null;
-    const s = parseTimeToSeconds(clipStart);
-    const e = clipEnd ? parseTimeToSeconds(clipEnd) : (analysis?.durationSeconds || 0);
-    if (e > s) {
-      return formatDuration(e - s);
+    const e = endSec > 0 ? endSec : (analysis?.durationSeconds || 0);
+    if (e > startSec) {
+      return humanizeSeconds(e - startSec);
     }
     return 'Başlangıçtan sona kadar';
-  }, [isClipEnabled, clipStart, clipEnd, analysis]);
+  }, [isClipEnabled, startSec, endSec, analysis]);
 
   const handleApplyPreset = (addSec: number) => {
-    const s = parseTimeToSeconds(clipStart);
-    const newEnd = s + addSec;
-    setClipEnd(formatSecondsToTime(newEnd));
+    const forceH = (analysis?.durationSeconds || 0) >= 3600;
+    const newEnd = startSec + addSec;
+    setClipEnd(formatSecondsToTime(newEnd, forceH));
   };
 
   const videoFormats = useMemo(
@@ -198,10 +238,10 @@ export const VideoGrabberModal: React.FC<Props> = ({
       sourceType = 'hls';
       targetDownloadUrl = selectedFormat.streamUrl || analysis.url;
     } else if (selectedFormat.protocol === 'https' && selectedFormat.streamUrl) {
-      sourceType = 'direct';
+      sourceType = isClipEnabled ? 'yt-dlp' : 'direct';
       targetDownloadUrl = selectedFormat.streamUrl;
     } else if (analysis.extractor === 'direct-media' && selectedFormat.isAudioOnly) {
-      sourceType = 'direct';
+      sourceType = isClipEnabled ? 'yt-dlp' : 'direct';
       targetDownloadUrl = analysis.url;
     } else if (analysis.extractor === 'hls-native' && selectedFormat.isAudioOnly) {
       sourceType = 'hls';
@@ -211,11 +251,12 @@ export const VideoGrabberModal: React.FC<Props> = ({
       targetDownloadUrl = analysis.url;
     }
 
+    const forceH = startSec >= 3600 || endSec >= 3600 || (analysis.durationSeconds || 0) >= 3600;
     const clipRange: ClipRange | undefined =
       isClipEnabled && clipStart.trim()
         ? {
-            startTime: clipStart.trim(),
-            endTime: clipEnd.trim() || undefined,
+            startTime: formatSecondsToTime(startSec, forceH),
+            endTime: endSec > startSec ? formatSecondsToTime(endSec, forceH) : undefined,
           }
         : undefined;
 
@@ -456,28 +497,37 @@ export const VideoGrabberModal: React.FC<Props> = ({
                   <div className="clip-content-box">
                     <div className="clip-controls-grid">
                       <div className="clip-input-group">
-                        <label>Başlangıç Zamanı (ss:dd veya sn):</label>
+                        <label>Başlangıç (Örn: 01:30 veya 01:15:30):</label>
                         <input
                           type="text"
                           className="clip-input"
-                          placeholder="00:00"
+                          placeholder="00:00:00"
                           value={clipStart}
                           onChange={(e) => setClipStart(e.target.value)}
                         />
+                        <span className="clip-hint-text">
+                          📍 {humanizeSeconds(startSec)}
+                        </span>
                       </div>
                       <div className="clip-input-group">
-                        <label>Bitiş Zamanı (Boş = Video Sonu):</label>
+                        <label>Bitiş (Boş = Video Sonu):</label>
                         <input
                           type="text"
-                          className="clip-input"
+                          className={`clip-input ${isInvalidRange ? 'input-error' : ''}`}
                           placeholder={
                             analysis.durationSeconds
-                              ? formatSecondsToTime(analysis.durationSeconds)
-                              : '00:00 (Sona kadar)'
+                              ? formatSecondsToTime(
+                                  analysis.durationSeconds,
+                                  analysis.durationSeconds >= 3600
+                                )
+                              : 'Video sonuna kadar'
                           }
                           value={clipEnd}
                           onChange={(e) => setClipEnd(e.target.value)}
                         />
+                        <span className="clip-hint-text">
+                          🏁 {endSec > 0 ? humanizeSeconds(endSec) : 'Video Sonuna Kadar'}
+                        </span>
                       </div>
                       <div className="clip-presets">
                         <button
@@ -517,6 +567,11 @@ export const VideoGrabberModal: React.FC<Props> = ({
                         </button>
                       </div>
                     </div>
+                    {isInvalidRange && (
+                      <div className="clip-error-alert">
+                        ⚠️ Bitiş zamanı ({humanizeSeconds(endSec)}), başlangıç zamanından ({humanizeSeconds(startSec)}) daha ileri bir zaman olmalıdır!
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -595,7 +650,7 @@ export const VideoGrabberModal: React.FC<Props> = ({
             </button>
             <button
               className="btn-primary"
-              disabled={!analysis || !selectedFormat}
+              disabled={!analysis || !selectedFormat || isInvalidRange}
               onClick={handleStartVideoDownload}
             >
               {downloadMode === 'audio' ? (

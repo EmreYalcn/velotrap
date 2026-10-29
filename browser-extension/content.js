@@ -67,6 +67,7 @@
             },
             focusWindow: Boolean(payload.focusWindow),
             autoStart: true,
+            clipRange: payload.clipRange,
           }),
         });
         return await r.json();
@@ -1072,14 +1073,14 @@
   const clipSetEndBtn = widget.querySelector('#idm-clip-set-end');
   let isClipActive = false;
 
-  function formatCurrentTime(sec) {
-    if (!sec || isNaN(sec) || sec < 0) return '00:00';
+  function formatCurrentTime(sec, forceHours = false) {
+    if (!sec || isNaN(sec) || sec < 0) return forceHours ? '00:00:00' : '00:00';
     const total = Math.floor(sec);
     const h = Math.floor(total / 3600);
     const m = Math.floor((total % 3600) / 60);
     const s = total % 60;
     const pad = (n) => String(n).padStart(2, '0');
-    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    if (h > 0 || forceHours) return `${pad(h)}:${pad(m)}:${pad(s)}`;
     return `${pad(m)}:${pad(s)}`;
   }
 
@@ -1196,7 +1197,10 @@
         clipBadge.classList.toggle('active', isClipActive);
       }
       if (isClipActive && activeVideo) {
-        clipStartInput.value = formatCurrentTime(activeVideo.currentTime);
+        clipStartInput.value = formatCurrentTime(
+          activeVideo.currentTime,
+          Boolean(activeVideo.duration >= 3600)
+        );
       }
       requestAnimationFrame(updateWidgetPosition);
     });
@@ -1207,7 +1211,10 @@
       e.preventDefault();
       e.stopPropagation();
       if (activeVideo) {
-        clipStartInput.value = formatCurrentTime(activeVideo.currentTime);
+        clipStartInput.value = formatCurrentTime(
+          activeVideo.currentTime,
+          Boolean(activeVideo.duration >= 3600)
+        );
       }
     });
   }
@@ -1217,7 +1224,10 @@
       e.preventDefault();
       e.stopPropagation();
       if (activeVideo) {
-        clipEndInput.value = formatCurrentTime(activeVideo.currentTime);
+        clipEndInput.value = formatCurrentTime(
+          activeVideo.currentTime,
+          Boolean(activeVideo.duration >= 3600)
+        );
       }
     });
   }
@@ -1871,7 +1881,7 @@
       sourceType = 'hls';
       targetDownloadUrl = fmt.streamUrl;
     } else if (fmt.protocol === 'https' && fmt.streamUrl && !fmt.isAudioOnly) {
-      sourceType = 'direct';
+      sourceType = isClipActive ? 'yt-dlp' : 'direct';
       targetDownloadUrl = fmt.streamUrl;
     }
 

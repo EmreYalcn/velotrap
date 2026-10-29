@@ -45,37 +45,66 @@ export function sanitizeFileName(name: string): string {
 }
 
 /**
- * Parses timestamp string (e.g. "01:23", "01:23:45", "75", "12.5") into total seconds.
+ * Intelligently parses timestamp strings into total seconds.
+ * Supports:
+ * - "01:23:45" (HH:MM:SS)
+ * - "01:23" (MM:SS)
+ * - "1h 30m", "1sa 30dk", "90s"
+ * - "01:29:338" or "01:29.338" (handles ms or typos where last part is 3 digits)
+ * - Raw numbers ("90", "120.5")
  */
 export function parseTimeToSeconds(input: string | number | undefined | null): number {
   if (input === undefined || input === null) return 0;
   if (typeof input === 'number') return Math.max(0, input);
-  const trimmed = String(input).trim();
-  if (!trimmed) return 0;
+  let str = String(input).trim().toLowerCase();
+  if (!str) return 0;
 
-  if (/^\d+(\.\d+)?$/.test(trimmed)) {
-    return Math.max(0, parseFloat(trimmed));
+  // Replace comma with dot for decimals
+  str = str.replace(',', '.');
+
+  // Support natural language like "1h 30m 15s" or "1sa 30dk 15sn"
+  const hMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|saat|sa\b|h\b)/i);
+  const mMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|dakika|dk\b|m\b)/i);
+  const sMatch = str.match(/(\d+(?:\.\d+)?)\s*(?:seconds?|secs?|saniye|sn\b|s\b)/i);
+  if (hMatch || mMatch || sMatch) {
+    const hours = hMatch ? parseFloat(hMatch[1]) : 0;
+    const mins = mMatch ? parseFloat(mMatch[1]) : 0;
+    const secs = sMatch ? parseFloat(sMatch[1]) : 0;
+    return Math.max(0, Math.round((hours * 3600 + mins * 60 + secs) * 1000) / 1000);
   }
 
-  const parts = trimmed.split(':').map((p) => parseFloat(p) || 0);
-  if (parts.length === 3) {
-    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
-  } else if (parts.length === 2) {
-    return Math.max(0, parts[0] * 60 + parts[1]);
+  // Pure number of seconds
+  if (/^\d+(?:\.\d+)?$/.test(str)) {
+    return Math.max(0, parseFloat(str));
   }
+
+  // Colon separated formats
+  const rawParts = str.split(':');
+  const numParts = rawParts.map((p) => parseFloat(p) || 0);
+
+  if (numParts.length === 3) {
+    // Check if the last part is milliseconds like "01:29:338" where 338 is ms
+    if (rawParts[2].trim().length === 3 && numParts[2] >= 60) {
+      return Math.max(0, numParts[0] * 60 + numParts[1] + numParts[2] / 1000);
+    }
+    return Math.max(0, numParts[0] * 3600 + numParts[1] * 60 + numParts[2]);
+  } else if (numParts.length === 2) {
+    return Math.max(0, numParts[0] * 60 + numParts[1]);
+  }
+
   return 0;
 }
 
 /**
- * Formats seconds into "hh:mm:ss" or "mm:ss" string for yt-dlp & FFmpeg
+ * Formats seconds into standard "hh:mm:ss" or "mm:ss" string.
  */
-export function formatSecondsToTime(sec: number): string {
+export function formatSecondsToTime(sec: number, forceHours = false): string {
   const total = Math.max(0, Math.floor(sec));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
-  if (h > 0) {
+  if (h > 0 || forceHours) {
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
   return `${pad(m)}:${pad(s)}`;
@@ -434,6 +463,7 @@ export class DownloadEngine extends EventEmitter {
     } else if (
       sourceType === 'direct' &&
       (isAudioRequest ||
+        Boolean(options.clipRange?.startTime) ||
         fmtId === 'best' ||
         fmtId.startsWith('height:') ||
         !/\.(mp4|webm|mkv|mov|avi|flv|mp3|m4a|wav|aac|zip|rar|7z|tar|gz|dmg|pkg|exe|iso|pdf|doc|docx|xls|xlsx)$/i.test(
@@ -938,12 +968,40 @@ export class DownloadEngine extends EventEmitter {
 
       if (item.clipRange && item.clipRange.startTime) {
         const startSec = parseTimeToSeconds(item.clipRange.startTime);
-        const endSec = item.clipRange.endTime ? parseTimeToSeconds(item.clipRange.endTime) : 0;
-        const section =
-          endSec > startSec
-            ? `*${formatSecondsToTime(startSec)}-${formatSecondsToTime(endSec)}`
-            : `*${formatSecondsToTime(startSec)}-inf`;
-        args.push('--download-sections', section, '--force-keyframes-at-cuts');
+        const rawEndSec = item.clipRange.endTime ? parseTimeToSeconds(item.clipRange.endTime) : 0;
+        const validEndSec = rawEndSec > startSec ? rawEndSec : 0;
+
+        const startFormatted = formatSecondsToTime(startSec);
+        const endFormatted = validEndSec > 0 ? formatSecondsToTime(validEndSec) : 'inf';
+        const section = `*${startFormatted}-${endFormatted}`;
+
+        args.push('--download-sections', section);
+
+        // Blazing-fast direct byte-range seeking via FFmpeg input options
+        if (validEndSec > 0) {
+          args.push(
+            '--downloader',
+            'ffmpeg',
+            '--downloader-args',
+            `ffmpeg_i:-ss ${startSec} -to ${validEndSec}`
+          );
+        } else {
+          args.push(
+            '--downloader',
+            'ffmpeg',
+            '--downloader-args',
+            `ffmpeg_i:-ss ${startSec}`
+          );
+        }
+      }
+
+      const nodeBin = fs.existsSync('/opt/homebrew/bin/node')
+        ? '/opt/homebrew/bin/node'
+        : fs.existsSync('/usr/local/bin/node')
+        ? '/usr/local/bin/node'
+        : '';
+      if (nodeBin) {
+        args.push('--js-runtimes', `node:${nodeBin}`);
       }
 
       if (useCustomHeaders) {
@@ -1046,20 +1104,22 @@ export class DownloadEngine extends EventEmitter {
         .map(([k, v]) => `${k}: ${v}\r\n`)
         .join('');
 
-      const clipArgs: string[] = [];
+      const inputSeekArgs: string[] = [];
+      const outputDurationArgs: string[] = [];
       if (item.clipRange && item.clipRange.startTime) {
         const sSec = parseTimeToSeconds(item.clipRange.startTime);
-        clipArgs.push('-ss', String(sSec));
+        inputSeekArgs.push('-ss', String(sSec));
         if (item.clipRange.endTime) {
           const eSec = parseTimeToSeconds(item.clipRange.endTime);
           if (eSec > sSec) {
-            clipArgs.push('-to', String(eSec));
+            outputDurationArgs.push('-t', String(eSec - sSec));
           }
         }
       }
 
       const args = [
         '-y',
+        ...(inputSeekArgs.length > 0 ? inputSeekArgs : []),
         '-headers',
         headerLines,
         '-i',
@@ -1067,11 +1127,17 @@ export class DownloadEngine extends EventEmitter {
       ];
 
       if (audioStreamUrl) {
-        args.push('-headers', headerLines, '-i', audioStreamUrl);
-        if (clipArgs.length > 0) args.push(...clipArgs);
+        args.push(
+          ...(inputSeekArgs.length > 0 ? inputSeekArgs : []),
+          '-headers',
+          headerLines,
+          '-i',
+          audioStreamUrl
+        );
+        if (outputDurationArgs.length > 0) args.push(...outputDurationArgs);
         args.push('-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart', outFile);
       } else {
-        if (clipArgs.length > 0) args.push(...clipArgs);
+        if (outputDurationArgs.length > 0) args.push(...outputDurationArgs);
         args.push('-c', 'copy', '-bsf:a', 'aac_adtstoasc', outFile);
       }
 
