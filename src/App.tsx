@@ -2,14 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import logoImg from './assets/logo.png';
 import {
   Activity,
-  Archive,
   Check,
   CheckCircle2,
   Clock,
-  Cpu,
   Download,
   ExternalLink,
-  FileText,
   Film,
   FolderOpen,
   Globe,
@@ -25,14 +22,12 @@ import {
   Search,
   Settings,
   Sparkles,
-  Square,
   Trash2,
   X,
   Zap,
 } from 'lucide-react';
 import {
   AppLanguage,
-  ClipRange,
   DownloadCategory,
   DownloadItem,
   EngineSettings,
@@ -45,7 +40,6 @@ import {
   formatSpeed,
   getStatusLabel,
 } from './utils/formatters';
-import { DownloadInspector } from './components/DownloadInspector';
 import { VideoGrabberModal } from './components/VideoGrabberModal';
 import {
   AddUrlModal,
@@ -69,14 +63,16 @@ const DEFAULT_SETTINGS: EngineSettings = {
 };
 
 export function App() {
-  const [appVersion, setAppVersion] = useState('3.1.14');
+  const [appVersion, setAppVersion] = useState('3.2.0');
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showInspector, setShowInspector] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<DownloadCategory>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'video' | 'music'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unfinished' | 'finished'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [quickUrl, setQuickUrl] = useState('');
+  
+  // Dedicated input states for Video & MP3 cards
+  const [videoUrlInput, setVideoUrlInput] = useState('');
+  const [audioUrlInput, setAudioUrlInput] = useState('');
 
   const [settings, setSettings] = useState<EngineSettings>(DEFAULT_SETTINGS);
   const lang: AppLanguage = settings.language || 'tr';
@@ -114,8 +110,6 @@ export function App() {
     lastSeenAt: null,
     extensionPath: '',
   });
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
 
   const handleStartExtensionInstall = () => {
     if ((window.idmApi as any)?.installExtensionHelper) {
@@ -133,18 +127,11 @@ export function App() {
         const res = await fetch('http://127.0.0.1:46890/api/status');
         if (res.ok) {
           const data = await res.json();
-          setExtensionStatus((prev) => {
-            const nowInstalled = data.extensionInstalled || false;
-            if (!prev.isInstalled && nowInstalled) {
-              setShowCelebration(true);
-              setTimeout(() => setShowCelebration(false), 5000);
-            }
-            return {
-              isInstalled: nowInstalled,
-              version: data.extensionVersion || '1.2.0',
-              lastSeenAt: data.lastExtensionPing || Date.now(),
-              extensionPath: data.extensionPath || '',
-            };
+          setExtensionStatus({
+            isInstalled: data.extensionInstalled || false,
+            version: data.extensionVersion || '1.2.0',
+            lastSeenAt: data.lastExtensionPing || Date.now(),
+            extensionPath: data.extensionPath || '',
           });
         }
       } catch {}
@@ -152,20 +139,6 @@ export function App() {
 
     checkExt();
     const extInterval = setInterval(checkExt, 3500);
-
-    const unsubExt = (api as any).onExtensionStatusUpdated
-      ? (api as any).onExtensionStatusUpdated((status: any) => {
-          if (status) {
-            setExtensionStatus((prev) => {
-              if (!prev.isInstalled && status.isInstalled) {
-                setShowCelebration(true);
-                setTimeout(() => setShowCelebration(false), 5000);
-              }
-              return status;
-            });
-          }
-        })
-      : () => {};
 
     api.getDownloads().then((list) => {
       setDownloads(list);
@@ -189,7 +162,6 @@ export function App() {
 
     return () => {
       clearInterval(extInterval);
-      unsubExt();
       unsubDownloads();
       unsubSniffer();
       unsubYtDlp();
@@ -242,16 +214,15 @@ export function App() {
     [downloads]
   );
 
-  const activeCount = activeDownloads.length;
-  const completedCount = completedDownloads.length;
+  const videoCount = useMemo(
+    () => downloads.filter((d) => d.category === 'video').length,
+    [downloads]
+  );
 
-  // Active Hero item: prefer selected item if downloading, or the first active download, or first item
-  const heroDownload = useMemo(() => {
-    if (selectedItem && (selectedItem.status === 'downloading' || selectedItem.status === 'connecting')) {
-      return selectedItem;
-    }
-    return activeDownloads[0] || downloads[0] || null;
-  }, [selectedItem, activeDownloads, downloads]);
+  const musicCount = useMemo(
+    () => downloads.filter((d) => d.category === 'music').length,
+    [downloads]
+  );
 
   const handleAddDownload = async (options: {
     url: string;
@@ -264,37 +235,10 @@ export function App() {
     headers?: Record<string, string>;
     totalBytes?: number;
     autoStart?: boolean;
-    clipRange?: ClipRange;
   }) => {
     if (!window.idmApi) return;
     const created = await window.idmApi.addDownload(options);
     setSelectedId(created.id);
-  };
-
-  const handleQuickAction = async (mode: 'direct' | 'video' | 'mp3') => {
-    const clean = quickUrl.trim();
-    if (!clean) {
-      setModalInitialUrl('');
-      setConverterInitialUrl('');
-      setConverterInitialFile('');
-      if (mode === 'video') setShowVideoModal(true);
-      else if (mode === 'mp3') setShowConverterModal(true);
-      else setShowAddModal(true);
-      return;
-    }
-
-    setQuickUrl('');
-    if (mode === 'mp3') {
-      setConverterInitialFile('');
-      setConverterInitialUrl(clean);
-      setShowConverterModal(true);
-    } else if (mode === 'video') {
-      setModalInitialUrl(clean);
-      setShowVideoModal(true);
-    } else {
-      setModalInitialUrl(clean);
-      setShowAddModal(true);
-    }
   };
 
   const handleStart = async (id: string) => {
@@ -321,373 +265,209 @@ export function App() {
     }
   };
 
-  const handleInstallYtDlp = async () => {
-    if (!window.idmApi) return;
-    const res = await window.idmApi.installYtDlp();
-    setEngineStatus(res.status);
-    setYtDlpProgress(null);
-  };
-
-  const getCategoryIcon = (cat: Exclude<DownloadCategory, 'all'>) => {
-    switch (cat) {
-      case 'video':
-        return <Film size={15} className="cat-icon-video" />;
-      case 'music':
-        return <Music size={15} className="cat-icon-music" />;
-      case 'compressed':
-        return <Archive size={15} className="cat-icon-compressed" />;
-      case 'programs':
-        return <Cpu size={15} className="cat-icon-programs" />;
-      case 'documents':
-        return <FileText size={15} className="cat-icon-documents" />;
-    }
-  };
-
   return (
-    <div className="idm-app-shell visionos-spatial-theme">
-      {/* Background Cosmic Canvas */}
-      <div className="visionos-cosmos-bg" />
+    <div className="idm-app-shell liquid-glass-theme">
+      {/* Dynamic Liquid Glass Shimmer Canvas */}
+      <div className="liquid-canvas-bg" />
 
-      {/* Main Glass Shell Container */}
-      <div className="visionos-window">
-        {/* Left Frosted Sidebar */}
-        <aside className="visionos-sidebar">
-          {/* macOS Traffic Lights + Add URL Pill */}
-          <div className="visionos-traffic-bar">
-            <div className="traffic-lights">
-              <span className="tl-dot tl-red" />
-              <span className="tl-dot tl-yellow" />
-              <span className="tl-dot tl-green" />
+      {/* Main Glass Workspace Window */}
+      <div className="liquid-window">
+        {/* Left Liquid Glass Sidebar */}
+        <aside className="liquid-sidebar">
+          {/* Logo & Brand Header (Clean, Traffic lights completely removed) */}
+          <div className="liquid-brand-row">
+            <img src={logoImg} className="liquid-logo-img" alt="Velotrap" />
+            <div className="liquid-brand-meta">
+              <span className="liquid-brand-title">Velotrap</span>
+              <span className="liquid-brand-ver">v{appVersion}</span>
             </div>
-            <button
-              className="visionos-btn-add-url"
-              onClick={() => {
-                setModalInitialUrl('');
-                setShowAddModal(true);
-              }}
-            >
-              <Plus size={13} />
-              <span>{isEn ? '+ Add URL' : '+ Link Ekle'}</span>
-            </button>
           </div>
 
           {/* Navigation Section */}
-          <div className="visionos-nav-group">
+          <div className="liquid-nav-group">
             <button
-              className={`visionos-nav-item ${statusFilter === 'all' && categoryFilter === 'all' ? 'active' : ''}`}
+              className={`liquid-nav-item ${statusFilter === 'all' && categoryFilter === 'all' ? 'active' : ''}`}
               onClick={() => {
                 setStatusFilter('all');
                 setCategoryFilter('all');
               }}
             >
               <HardDrive size={15} />
-              <span className="nav-title">{isEn ? 'All Downloads' : 'Tüm Dosyalar'}</span>
+              <span className="nav-title">{isEn ? 'All' : 'Tümü'}</span>
               <span className="nav-count">({downloads.length})</span>
             </button>
 
             <button
-              className={`visionos-nav-item ${statusFilter === 'unfinished' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('unfinished')}
+              className={`liquid-nav-item ${statusFilter === 'unfinished' ? 'active' : ''}`}
+              onClick={() => {
+                setStatusFilter('unfinished');
+                setCategoryFilter('all');
+              }}
             >
-              <div className="nav-icon-glow">
-                <span className="pulse-blue-dot" />
-              </div>
+              <div className="nav-glow-pulse" />
               <span className="nav-title">{isEn ? 'Active' : 'İndiriliyor'}</span>
-              <span className="nav-count">({activeCount})</span>
+              <span className="nav-count">({activeDownloads.length})</span>
             </button>
 
             <button
-              className={`visionos-nav-item ${statusFilter === 'finished' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('finished')}
+              className={`liquid-nav-item ${statusFilter === 'finished' ? 'active' : ''}`}
+              onClick={() => {
+                setStatusFilter('finished');
+                setCategoryFilter('all');
+              }}
             >
               <CheckCircle2 size={15} className="text-emerald" />
               <span className="nav-title">{isEn ? 'Completed' : 'Tamamlanan'}</span>
-              <span className="nav-count">({completedCount})</span>
+              <span className="nav-count">({completedDownloads.length})</span>
             </button>
           </div>
 
-          {/* Categories Section */}
-          <div className="visionos-divider" />
-          <div className="visionos-nav-group">
-            <div className="visionos-section-label">{isEn ? 'CATEGORIES' : 'KATEGORİLER'}</div>
-            {(
-              [
-                { id: 'video', label: isEn ? 'Videos' : 'Videolar', icon: <Film size={14} /> },
-                { id: 'music', label: isEn ? 'Audio' : 'Müzik & Ses', icon: <Music size={14} /> },
-                { id: 'compressed', label: isEn ? 'Archives' : 'Arşivler', icon: <Archive size={14} /> },
-                { id: 'programs', label: isEn ? 'Apps' : 'Programlar', icon: <Cpu size={14} /> },
-              ] as { id: DownloadCategory; label: string; icon: React.ReactNode }[]
-            ).map((cat) => {
-              const count = downloads.filter((d) => d.category === cat.id).length;
-              return (
-                <button
-                  key={cat.id}
-                  className={`visionos-nav-item ${categoryFilter === cat.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setCategoryFilter(cat.id);
-                    setStatusFilter('all');
-                  }}
-                >
-                  {cat.icon}
-                  <span className="nav-title">{cat.label}</span>
-                  <span className="nav-count">({count})</span>
-                </button>
-              );
-            })}
+          <div className="liquid-divider" />
+
+          {/* Categories: ONLY Videos & Audio as requested */}
+          <div className="liquid-nav-group">
+            <div className="liquid-section-label">{isEn ? 'CATEGORIES' : 'KATEGORİLER'}</div>
+            
+            <button
+              className={`liquid-nav-item ${categoryFilter === 'video' ? 'active' : ''}`}
+              onClick={() => {
+                setCategoryFilter('video');
+                setStatusFilter('all');
+              }}
+            >
+              <Film size={15} className="text-sky" />
+              <span className="nav-title">{isEn ? 'Videos' : 'Videolar'}</span>
+              <span className="nav-count">({videoCount})</span>
+            </button>
+
+            <button
+              className={`liquid-nav-item ${categoryFilter === 'music' ? 'active' : ''}`}
+              onClick={() => {
+                setCategoryFilter('music');
+                setStatusFilter('all');
+              }}
+            >
+              <Music size={15} className="text-rose" />
+              <span className="nav-title">{isEn ? 'Audio / MP3' : 'Sesler & Müzik'}</span>
+              <span className="nav-count">({musicCount})</span>
+            </button>
           </div>
 
-          {/* Sidebar Disk Space / Engine Status Footer */}
-          <div className="visionos-sidebar-bottom">
-            <div className="disk-storage-pill">
+          {/* Sidebar Footer Disk Info */}
+          <div className="liquid-sidebar-footer">
+            <div className="liquid-disk-pill">
               <HardDrive size={13} className="text-muted" />
               <div className="disk-meta">
                 <span className="disk-label">Macintosh HD</span>
-                <span className="disk-free">
-                  {isEn ? 'High Speed Engine 16x' : '16x Hızlı Motor Hazır'}
-                </span>
+                <span className="disk-free">{isEn ? '16x Parallel Engine' : '16x Hızlı Motor'}</span>
               </div>
             </div>
-            {!engineStatus.ytDlpInstalled && (
-              <button
-                className="visionos-mini-action-btn"
-                onClick={handleInstallYtDlp}
-              >
-                {ytDlpProgress ? `%${ytDlpProgress.pct}` : isEn ? 'Install Engine' : 'Motoru Kur'}
-              </button>
-            )}
           </div>
         </aside>
 
-        {/* Right Main Spatial Bento Canvas */}
-        <main className="visionos-main-stage">
-          {/* Top Spatial Command Header Bar */}
-          <header className="visionos-topbar">
-            {/* Quick URL Grab / Paste Input */}
-            <div className="visionos-url-bar">
-              <Link2 size={15} className="url-link-icon" />
-              <input
-                type="text"
-                className="visionos-url-input"
-                placeholder={isEn ? 'Paste video, audio or file URL to download (⌘V)...' : 'İndirmek istediğiniz video, müzik veya dosya bağlantısını yapıştırın (⌘V)...'}
-                value={quickUrl}
-                onChange={(e) => setQuickUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleQuickAction('video');
-                }}
-              />
-              <button
-                className="visionos-pill-btn-neon"
-                onClick={() => handleQuickAction('video')}
-              >
-                <Zap size={13} />
-                <span>{isEn ? 'Download' : 'İndir'}</span>
-              </button>
-              <button
-                className="visionos-pill-btn-glass"
-                onClick={() => {
-                  setConverterInitialFile('');
-                  setConverterInitialUrl(quickUrl.trim());
-                  setShowConverterModal(true);
-                }}
-                title={isEn ? 'Clip or Convert to MP3' : 'Kırp veya MP3 Yap'}
-              >
-                <Scissors size={13} />
-                <span>{isEn ? 'Clip' : 'Kırp'}</span>
-              </button>
-            </div>
+        {/* Center Main Stage */}
+        <main className="liquid-main-stage">
+          {/* Main Content Bento Area */}
+          <div className="liquid-bento-grid">
+            {/* Top-Left: Dual Long Strips (Video & MP3) replacing old hero */}
+            <div className="liquid-dual-strips-box">
+              {/* 1. Long Strip: Video Downloader */}
+              <div className="liquid-strip-card video-strip">
+                <div className="strip-header">
+                  <div className="strip-title-group">
+                    <div className="strip-icon-badge video-badge">
+                      <Film size={15} />
+                    </div>
+                    <div>
+                      <h3 className="strip-title">{isEn ? 'Video Downloader' : 'Video İndirme'}</h3>
+                      <p className="strip-desc">{isEn ? 'Download YouTube, TikTok, Instagram, Twitter videos in up to 4K 60fps' : 'YouTube, TikTok, Instagram veya Twitter videolarını 4K 60fps kalitesinde indirin'}</p>
+                    </div>
+                  </div>
+                  <span className="strip-tag-pill">4K • 1080p • HLS</span>
+                </div>
 
-            {/* Quick Utility Actions */}
-            <div className="visionos-top-actions">
-              <button
-                className="visionos-glass-action"
-                onClick={() => setShowSnifferModal(true)}
-              >
-                <Radar size={14} className="text-neon-cyan" />
-                <span>Media Sniffer</span>
-                {sniffedItems.length > 0 && (
-                  <span className="snif-badge-pill">{sniffedItems.length}</span>
-                )}
-              </button>
-
-              <button
-                className="visionos-glass-action"
-                title={isEn ? 'Resume All' : 'Hepsini Başlat'}
-                onClick={() => window.idmApi?.resumeAll().then(setDownloads)}
-              >
-                <Play size={12} fill="currentColor" />
-                <span>{isEn ? 'Resume' : 'Devam'}</span>
-              </button>
-
-              <button
-                className="visionos-glass-action"
-                title={isEn ? 'Pause All' : 'Hepsini Durdur'}
-                onClick={() => window.idmApi?.pauseAll().then(setDownloads)}
-              >
-                <Pause size={12} fill="currentColor" />
-                <span>{isEn ? 'Pause' : 'Durdur'}</span>
-              </button>
-
-              {/* Live Speed Glow Pill */}
-              <div className="visionos-speed-neon-pill">
-                <span className="speed-arrow">↓</span>
-                <span className="speed-val">
-                  {totalActiveSpeed > 0 ? formatSpeed(totalActiveSpeed, lang) : '0.0 KB/s'}
-                </span>
+                <div className="strip-input-bar">
+                  <Link2 size={15} className="strip-input-icon" />
+                  <input
+                    type="text"
+                    className="strip-input-field"
+                    placeholder={isEn ? 'Paste video URL here (e.g. YouTube, TikTok, X)...' : 'İndirmek istediğiniz video bağlantısını yapıştırın (YouTube, TikTok, X)...'}
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && videoUrlInput.trim()) {
+                        setModalInitialUrl(videoUrlInput.trim());
+                        setVideoUrlInput('');
+                        setShowVideoModal(true);
+                      }
+                    }}
+                  />
+                  <button
+                    className="liquid-btn-primary"
+                    onClick={() => {
+                      setModalInitialUrl(videoUrlInput.trim());
+                      setVideoUrlInput('');
+                      setShowVideoModal(true);
+                    }}
+                  >
+                    <Zap size={13} />
+                    <span>{isEn ? 'Download Video' : 'Videoyu İndir'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Settings Cog */}
-              <button
-                className="visionos-icon-btn"
-                onClick={() => setShowSettingsModal(true)}
-                title={isEn ? 'Settings' : 'Ayarlar'}
-              >
-                <Settings size={15} />
-              </button>
-            </div>
-          </header>
-
-          {/* Bento Content Area */}
-          <div className="visionos-bento-grid">
-            {/* 1. Hero Active Download Bento Card (Top Left) */}
-            <section className="bento-card bento-hero-active">
-              {heroDownload ? (
-                (() => {
-                  const item = heroDownload;
-                  const pct =
-                    item.totalBytes > 0
-                      ? Math.min(100, (item.downloadedBytes / item.totalBytes) * 100)
-                      : item.status === 'completed'
-                      ? 100
-                      : 0;
-                  const isRunning =
-                    item.status === 'downloading' ||
-                    item.status === 'connecting' ||
-                    item.status === 'merging';
-                  const totalChunks = 16;
-                  const activeChunks = Math.max(
-                    1,
-                    Math.round((pct / 100) * totalChunks)
-                  );
-
-                  return (
-                    <div className="bento-hero-inner">
-                      {/* Video Poster & Title Overlay */}
-                      <div className="hero-poster-header">
-                        <div className="hero-header-meta">
-                          <h2 className="hero-file-name" title={item.fileName}>
-                            {item.fileName}
-                          </h2>
-                          <div className="hero-format-pills">
-                            <span className="hero-badge-tag">
-                              {item.videoResolution || (item.category === 'video' ? '4K 60fps' : '16x Multi-Chunk')}
-                            </span>
-                            <span className="hero-badge-tag-secondary">
-                              {item.category.toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Top Right Quick Actions inside Hero */}
-                        <div className="hero-quick-btns">
-                          {isRunning ? (
-                            <button
-                              className="hero-action-circle"
-                              title={isEn ? 'Pause' : 'Durdur'}
-                              onClick={() => handlePause(item.id)}
-                            >
-                              <Pause size={15} />
-                            </button>
-                          ) : (
-                            <button
-                              className="hero-action-circle"
-                              title={isEn ? 'Start' : 'Başlat'}
-                              onClick={() => handleStart(item.id)}
-                            >
-                              <Play size={15} />
-                            </button>
-                          )}
-                          <button
-                            className="hero-action-circle"
-                            title={isEn ? 'Open Folder' : 'Klasörde Aç'}
-                            onClick={() => window.idmApi?.openFileLocation(item.savePath)}
-                          >
-                            <FolderOpen size={15} />
-                          </button>
-                          <button
-                            className="hero-action-circle"
-                            title={isEn ? 'Clip or Convert' : 'Kırp & Dönüştür'}
-                            onClick={() => {
-                              setConverterInitialFile(item.savePath);
-                              setShowConverterModal(true);
-                            }}
-                          >
-                            <Scissors size={15} />
-                          </button>
-                          <button
-                            className="hero-action-circle danger"
-                            title={isEn ? 'Delete' : 'Sil'}
-                            onClick={() => handleDelete(item.id, false)}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 16-Segment Parallel Visual Segment Bar */}
-                      <div className="hero-chunk-deck">
-                        <div className="chunk-segments-row">
-                          {Array.from({ length: totalChunks }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className={`chunk-bar-block ${idx < activeChunks ? 'filled' : 'empty'} ${idx === activeChunks - 1 && isRunning ? 'active-pulse' : ''}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Download Stats + Video Clipper Tag */}
-                      <div className="hero-stats-footer">
-                        <div className="hero-meta-bytes">
-                          <span className="bytes-downloaded">
-                            {formatBytes(item.downloadedBytes, lang)}
-                          </span>
-                          <span className="bytes-divider">/</span>
-                          <span className="bytes-total">
-                            {formatBytes(item.totalBytes, lang)}
-                          </span>
-                          <span className="stat-bullet">•</span>
-                          <span className="stat-pct">%{pct.toFixed(0)}</span>
-                          <span className="stat-bullet">•</span>
-                          <span className="stat-speed">
-                            {item.speedBps ? formatSpeed(item.speedBps, lang) : '0 KB/s'}
-                          </span>
-                          <span className="stat-bullet">•</span>
-                          <span className="stat-eta">
-                            ETA {item.etaSeconds ? formatEta(item.etaSeconds, lang) : '--:--'}
-                          </span>
-                        </div>
-
-                        <div className="hero-clipper-tag">
-                          <Scissors size={12} />
-                          <span>01:20 - 05:40</span>
-                        </div>
-                      </div>
+              {/* 2. Long Strip: MP3 / Audio Downloader */}
+              <div className="liquid-strip-card audio-strip">
+                <div className="strip-header">
+                  <div className="strip-title-group">
+                    <div className="strip-icon-badge audio-badge">
+                      <Music size={15} />
                     </div>
-                  );
-                })()
-              ) : (
-                <div className="hero-empty-state">
-                  <Film size={36} className="text-muted" />
-                  <h3>{isEn ? 'No Active Download' : 'Aktif İndirme Yok'}</h3>
-                  <p>{isEn ? 'Paste any link above or catch streams from your browser.' : 'Yukarıdaki alana link yapıştırın veya tarayıcınızdan yakalayın.'}</p>
+                    <div>
+                      <h3 className="strip-title">{isEn ? 'MP3 & Audio Downloader' : 'MP3 & Ses İndirme'}</h3>
+                      <p className="strip-desc">{isEn ? 'Extract high quality 320kbps MP3 from any video or music link' : 'Herhangi bir video veya müzik linkinden yüksek kaliteli 320kbps MP3 çıkarıp indirin'}</p>
+                    </div>
+                  </div>
+                  <span className="strip-tag-pill audio-pill">320kbps • FLAC</span>
                 </div>
-              )}
-            </section>
 
-            {/* 2. Media Sniffer Radar Card (Top Right) */}
-            <section className="bento-card bento-sniffer-radar">
-              <div className="card-top-header">
-                <div className="header-title-row">
+                <div className="strip-input-bar">
+                  <Link2 size={15} className="strip-input-icon" />
+                  <input
+                    type="text"
+                    className="strip-input-field"
+                    placeholder={isEn ? 'Paste link to convert directly to MP3...' : 'Doğrudan MP3 olarak indirmek için link yapıştırın...'}
+                    value={audioUrlInput}
+                    onChange={(e) => setAudioUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && audioUrlInput.trim()) {
+                        setConverterInitialFile('');
+                        setConverterInitialUrl(audioUrlInput.trim());
+                        setAudioUrlInput('');
+                        setShowConverterModal(true);
+                      }
+                    }}
+                  />
+                  <button
+                    className="liquid-btn-emerald"
+                    onClick={() => {
+                      setConverterInitialFile('');
+                      setConverterInitialUrl(audioUrlInput.trim());
+                      setAudioUrlInput('');
+                      setShowConverterModal(true);
+                    }}
+                  >
+                    <Music size={13} />
+                    <span>{isEn ? 'Download MP3' : 'MP3 İndir'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Top-Right: Media Sniffer Radar */}
+            <div className="liquid-card sniffer-radar-card">
+              <div className="liquid-card-header">
+                <div className="header-left">
                   <Radar size={16} className="text-neon-cyan" />
                   <h3>Media Sniffer Radar</h3>
                 </div>
@@ -707,7 +487,7 @@ export function App() {
                         ) : sItem.url.includes('tiktok') ? (
                           <span className="badge-tt">TT</span>
                         ) : (
-                          <Film size={15} />
+                          <Film size={14} />
                         )}
                       </div>
                       <div className="snif-tile-text">
@@ -719,7 +499,7 @@ export function App() {
                         </div>
                       </div>
                       <button
-                        className="btn-grab-neon"
+                        className="liquid-btn-grab"
                         onClick={async () => {
                           const isHls = sItem.ext === 'm3u8' || sItem.url.includes('.m3u8');
                           await handleAddDownload({
@@ -745,7 +525,7 @@ export function App() {
                         <div className="snif-spec">4K 60fps • Otomatik</div>
                       </div>
                       <button
-                        className="btn-grab-neon"
+                        className="liquid-btn-grab"
                         onClick={() => {
                           setModalInitialUrl('https://www.youtube.com');
                           setShowVideoModal(true);
@@ -761,7 +541,7 @@ export function App() {
                         <div className="snif-spec">1080p • Filigransız</div>
                       </div>
                       <button
-                        className="btn-grab-neon"
+                        className="liquid-btn-grab"
                         onClick={() => {
                           setModalInitialUrl('');
                           setShowVideoModal(true);
@@ -777,7 +557,7 @@ export function App() {
                         <div className="snif-spec">FLAC / MP3 • Canlı</div>
                       </div>
                       <button
-                        className="btn-grab-neon"
+                        className="liquid-btn-grab"
                         onClick={() => {
                           setConverterInitialUrl('');
                           setShowConverterModal(true);
@@ -789,33 +569,33 @@ export function App() {
                   </>
                 )}
               </div>
-            </section>
+            </div>
 
-            {/* 3. Downloaded Files List Card (Bottom Left) */}
-            <section className="bento-card bento-completed-files">
-              <div className="card-top-header">
-                <div className="header-title-row">
+            {/* Bottom-Left: Downloaded Files Card with Search & Folder/Trash actions */}
+            <div className="liquid-card downloaded-files-card">
+              <div className="liquid-card-header">
+                <div className="header-left">
                   <CheckCircle2 size={16} className="text-emerald" />
                   <h3>{isEn ? 'Downloaded Files' : 'İndirilen Dosyalar'}</h3>
-                  <span className="bento-count-badge">{completedDownloads.length}</span>
+                  <span className="liquid-badge-counter">{completedDownloads.length}</span>
                 </div>
-                <div className="bento-header-filter">
+                <div className="liquid-search-box">
                   <Search size={12} className="text-muted" />
                   <input
                     type="text"
-                    placeholder={isEn ? 'Filter files...' : 'Dosya ara...'}
+                    placeholder={isEn ? 'Search files...' : 'Dosya ara...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="completed-items-scroll">
+              <div className="liquid-files-scroll">
                 {filteredDownloads.length > 0 ? (
                   filteredDownloads.map((item) => (
                     <div
                       key={item.id}
-                      className={`completed-row-tile ${item.id === selectedId ? 'selected' : ''}`}
+                      className={`liquid-file-row ${item.id === selectedId ? 'selected' : ''}`}
                       onClick={() => setSelectedId(item.id)}
                       onDoubleClick={() => {
                         if (item.status === 'completed') {
@@ -823,17 +603,22 @@ export function App() {
                         }
                       }}
                     >
-                      <div className="tile-category-icon">
-                        {getCategoryIcon(item.category)}
+                      <div className="file-cat-icon">
+                        {item.category === 'music' ? (
+                          <Music size={14} className="text-rose" />
+                        ) : (
+                          <Film size={14} className="text-sky" />
+                        )}
                       </div>
-                      <div className="tile-info-block">
-                        <div className="tile-name" title={item.fileName}>
+
+                      <div className="file-meta-col">
+                        <span className="file-row-name" title={item.fileName}>
                           {item.fileName}
-                        </div>
-                        <div className="tile-submeta">
+                        </span>
+                        <div className="file-row-sub">
                           <span>{formatBytes(item.totalBytes || item.downloadedBytes, lang)}</span>
-                          <span className="dot-sep">•</span>
-                          <span className={`item-status-pill status-${item.status}`}>
+                          <span className="sep-bullet">•</span>
+                          <span className={`file-status-tag status-${item.status}`}>
                             {item.status === 'completed'
                               ? isEn ? 'Finished' : 'Tamamlandı'
                               : item.status === 'downloading'
@@ -843,105 +628,140 @@ export function App() {
                         </div>
                       </div>
 
-                      {/* File Actions: Open in Folder & Delete */}
-                      <div className="tile-actions">
+                      {/* Folder open & Delete icons */}
+                      <div className="file-row-actions">
                         {item.status === 'completed' && (
                           <button
-                            className="tile-btn"
+                            className="liquid-action-icon"
                             title={isEn ? 'Open File' : 'Dosyayı Aç'}
                             onClick={(e) => {
                               e.stopPropagation();
                               window.idmApi?.openFile(item.savePath);
                             }}
                           >
-                            <ExternalLink size={14} />
+                            <ExternalLink size={13} />
                           </button>
                         )}
                         <button
-                          className="tile-btn"
+                          className="liquid-action-icon"
                           title={isEn ? 'Show in Finder' : 'Dosyada Aç (Finder)'}
                           onClick={(e) => {
                             e.stopPropagation();
                             window.idmApi?.openFileLocation(item.savePath);
                           }}
                         >
-                          <FolderOpen size={14} />
+                          <FolderOpen size={13} />
                         </button>
                         <button
-                          className="tile-btn danger"
+                          className="liquid-action-icon danger"
                           title={isEn ? 'Delete' : 'Sil'}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDelete(item.id, false);
                           }}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="bento-no-files">
+                  <div className="liquid-empty-notice">
                     <CheckCircle2 size={24} className="text-muted" />
-                    <span>{isEn ? 'No downloads found' : 'İndirilen dosya bulunamadı'}</span>
+                    <span>{isEn ? 'No files found' : 'İndirilen dosya bulunamadı'}</span>
                   </div>
                 )}
               </div>
-            </section>
+            </div>
 
-            {/* 4. Chrome Extension & Engine Status Bento Card (Bottom Right) */}
-            <section className="bento-card bento-extension-status">
-              <div className="card-top-header">
-                <div className="header-title-row">
-                  <Globe size={16} className={extensionStatus.isInstalled ? 'text-emerald' : 'text-amber'} />
-                  <h3>{isEn ? 'Chrome Extension' : 'Chrome Eklentisi'}</h3>
-                </div>
-                <div className={`ext-status-pill ${extensionStatus.isInstalled ? 'connected' : 'missing'}`}>
-                  <span className="status-dot" />
-                  <span>
-                    {extensionStatus.isInstalled
-                      ? isEn ? 'CONNECTED' : 'BAĞLI'
-                      : isEn ? 'NOT CONNECTED' : 'KURULU DEĞİL'}
-                  </span>
-                </div>
+            {/* Bottom-Right: Chrome Extension Compact Square Card */}
+            <div className="liquid-card extension-square-card">
+              <div className="ext-square-icon-wrap">
+                <Globe size={26} className={extensionStatus.isInstalled ? 'text-emerald' : 'text-amber'} />
               </div>
 
-              <div className="ext-card-body">
-                <div className="ext-info-row">
-                  <span className="ext-key">Bridge IP:</span>
-                  <span className="ext-val">127.0.0.1:46890</span>
-                </div>
-                <div className="ext-info-row">
-                  <span className="ext-key">Versiyon:</span>
-                  <span className="ext-val">{extensionStatus.version || 'v1.2.0'}</span>
-                </div>
-                <div className="ext-info-row">
-                  <span className="ext-key">Durum:</span>
-                  <span className="ext-val text-emerald">
-                    {extensionStatus.isInstalled
-                      ? (isEn ? 'Ready for auto capture ✓' : 'Otomatik Yakalamaya Hazır ✓')
-                      : (isEn ? 'Click below to enable' : 'Aktif etmek için tıklayın')}
-                  </span>
-                </div>
+              <h4 className="ext-square-title">{isEn ? 'Chrome Extension' : 'Chrome Eklentisi'}</h4>
 
-                <div className="ext-card-actions">
-                  <button
-                    className="btn-visionos-ext-action"
-                    onClick={handleStartExtensionInstall}
-                  >
-                    <Zap size={14} />
-                    <span>{extensionStatus.isInstalled ? (isEn ? 'Re-install' : 'Yeniden Kur') : (isEn ? 'Install Extension' : 'Eklentiyi Kur')}</span>
-                  </button>
-                  <button
-                    className="btn-visionos-ext-guide"
-                    onClick={() => setShowExtensionModal(true)}
-                  >
-                    {isEn ? 'Guide' : 'Rehber'}
-                  </button>
-                </div>
+              <div className={`ext-status-capsule ${extensionStatus.isInstalled ? 'installed' : 'missing'}`}>
+                <span className="status-dot" />
+                <span>
+                  {extensionStatus.isInstalled
+                    ? (isEn ? 'KURULU' : 'KURULU')
+                    : (isEn ? 'KURULU DEĞİL' : 'KURULU DEĞİL')}
+                </span>
               </div>
-            </section>
+
+              <button
+                className="liquid-btn-ext-install"
+                onClick={handleStartExtensionInstall}
+              >
+                <Zap size={13} />
+                <span>{extensionStatus.isInstalled ? (isEn ? 'Yeniden Kur' : 'Yeniden Kur') : (isEn ? 'Eklentiyi Kur' : 'Eklentiyi Kur')}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Bottom Control Bar (Moved to the bottom as requested) */}
+          <footer className="liquid-bottom-bar">
+            <div className="bottom-left-group">
+              <div className="bottom-status-pill">
+                <span className={`pulse-dot ${activeDownloads.length > 0 ? 'active' : ''}`} />
+                <span>
+                  {activeDownloads.length > 0
+                    ? `${activeDownloads.length} İndirme Aktif`
+                    : (isEn ? 'Ready' : 'Hazır')}
+                </span>
+              </div>
+
+              <button
+                className="liquid-glass-pill"
+                onClick={() => setShowSnifferModal(true)}
+              >
+                <Radar size={13} className="text-neon-cyan" />
+                <span>Media Sniffer</span>
+                {sniffedItems.length > 0 && (
+                  <span className="snif-badge-pill">{sniffedItems.length}</span>
+                )}
+              </button>
+            </div>
+
+            <div className="bottom-center-group">
+              <button
+                className="liquid-glass-pill"
+                title={isEn ? 'Resume All' : 'Hepsini Devam Ettir'}
+                onClick={() => window.idmApi?.resumeAll().then(setDownloads)}
+              >
+                <Play size={12} fill="currentColor" />
+                <span>{isEn ? 'Resume All' : 'Hepsini Başlat'}</span>
+              </button>
+
+              <button
+                className="liquid-glass-pill"
+                title={isEn ? 'Pause All' : 'Hepsini Durdur'}
+                onClick={() => window.idmApi?.pauseAll().then(setDownloads)}
+              >
+                <Pause size={12} fill="currentColor" />
+                <span>{isEn ? 'Pause All' : 'Hepsini Durdur'}</span>
+              </button>
+            </div>
+
+            <div className="bottom-right-group">
+              <div className="liquid-speed-capsule">
+                <span className="speed-arrow">↓</span>
+                <span className="speed-text">
+                  {totalActiveSpeed > 0 ? formatSpeed(totalActiveSpeed, lang) : '0.0 KB/s'}
+                </span>
+              </div>
+
+              <button
+                className="liquid-icon-btn"
+                onClick={() => setShowSettingsModal(true)}
+                title={isEn ? 'Settings' : 'Ayarlar'}
+              >
+                <Settings size={15} />
+              </button>
+            </div>
+          </footer>
         </main>
       </div>
 
@@ -974,7 +794,7 @@ export function App() {
               ? window.idmApi.analyzeVideo(u)
               : Promise.reject(new Error('No IPC'))
           }
-          onInstallYtDlp={handleInstallYtDlp}
+          onInstallYtDlp={() => window.idmApi?.installYtDlp()}
           onOpenLiveSniffer={(u) => {
             window.idmApi?.openSnifferBrowser(u);
             setShowSnifferModal(true);
@@ -1023,7 +843,7 @@ export function App() {
           onSelectDir={() =>
             window.idmApi ? window.idmApi.selectDirectory() : Promise.resolve(null)
           }
-          onInstallYtDlp={handleInstallYtDlp}
+          onInstallYtDlp={() => window.idmApi?.installYtDlp()}
         />
       )}
 
