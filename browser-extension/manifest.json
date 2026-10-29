@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Velotrap — Video & Medya İndirici",
   "short_name": "Velotrap",
-  "version": "3.1.15",
+  "version": "3.1.17",
   "description": "Tüm web sitelerindeki videoları anında yakalar, videonun üzerinde 'Videoyu İndir' (Kalite Seçimi + MP3 Dönüştürücü) menüsünü gösterir.",
   "permissions": [
     "tabs",
