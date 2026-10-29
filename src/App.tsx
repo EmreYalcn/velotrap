@@ -255,6 +255,33 @@ export function App() {
     }
   };
 
+    const handleQueueDownload = async (url: string, category: 'video' | 'music') => {
+    const clean = url.trim();
+    if (!clean) return;
+    if (category === 'video') setVideoUrlInput('');
+    else setAudioUrlInput('');
+
+    try {
+      const isYt = clean.includes('youtube.com') || clean.includes('youtu.be');
+      const isTiktok = clean.includes('tiktok.com');
+      const ext = category === 'music' ? 'mp3' : 'mp4';
+      const fallbackName = `${category === 'music' ? 'Müzik' : 'Video'}_${Date.now()}.${ext}`;
+
+      if (window.idmApi) {
+        await window.idmApi.addDownload({
+          url: clean,
+          fileName: fallbackName,
+          connectionsCount: settings.maxConnectionsPerDownload || 16,
+          sourceType: isYt || isTiktok ? 'yt-dlp' : 'direct',
+          videoFormatId: category === 'music' ? 'bestaudio' : 'best',
+          autoStart: false,
+        });
+      }
+    } catch (err) {
+      console.error('Queue add failed:', err);
+    }
+  };
+
   const handleDelete = async (id: string, deleteDisk = false) => {
     if (window.idmApi) {
       const updated = await window.idmApi.deleteDownload(id, deleteDisk);
@@ -403,6 +430,14 @@ export function App() {
                     }}
                   />
                   <button
+                    className="liquid-btn-glass-queue"
+                    title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
+                    onClick={() => handleQueueDownload(videoUrlInput, 'video')}
+                  >
+                    <Clock size={13} />
+                    <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
+                  </button>
+                  <button
                     className="liquid-btn-primary"
                     onClick={() => {
                       setModalInitialUrl(videoUrlInput.trim());
@@ -448,6 +483,14 @@ export function App() {
                       }
                     }}
                   />
+                  <button
+                    className="liquid-btn-glass-queue"
+                    title={isEn ? 'Queue to History without starting' : 'Başlatmadan Geçmiş listesine sıraya ekle'}
+                    onClick={() => handleQueueDownload(audioUrlInput, 'music')}
+                  >
+                    <Clock size={13} />
+                    <span>{isEn ? 'Queue' : 'Sıraya Al'}</span>
+                  </button>
                   <button
                     className="liquid-btn-emerald"
                     onClick={() => {
@@ -576,7 +619,7 @@ export function App() {
               <div className="liquid-card-header">
                 <div className="header-left">
                   <CheckCircle2 size={16} className="text-emerald" />
-                  <h3>{isEn ? 'Downloaded Files' : 'İndirilen Dosyalar'}</h3>
+                  <h3>{isEn ? 'History' : 'Geçmiş'}</h3>
                   <span className="liquid-badge-counter">{completedDownloads.length}</span>
                 </div>
                 <div className="liquid-search-box">
@@ -728,11 +771,11 @@ export function App() {
             <div className="bottom-center-group">
               <button
                 className="liquid-glass-pill"
-                title={isEn ? 'Resume All' : 'Hepsini Devam Ettir'}
+                title={isEn ? 'Download Queued' : 'Sıraya Alınanları İndir'}
                 onClick={() => window.idmApi?.resumeAll().then(setDownloads)}
               >
                 <Play size={12} fill="currentColor" />
-                <span>{isEn ? 'Resume All' : 'Hepsini Başlat'}</span>
+                <span>{isEn ? 'Download Queued' : 'Sıraya Alınanları İndir'}</span>
               </button>
 
               <button
