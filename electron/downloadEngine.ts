@@ -537,12 +537,24 @@ export class DownloadEngine extends EventEmitter {
     const fmtId = item.videoFormatId || 'best';
     const isAudioRequest = fmtId === 'bestaudio-mp3' || fmtId.startsWith('audio:');
 
-    const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+    const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/|\.(?:jpe?g|png|gif|webp|svg|ico|woff2?)(?:\?|$|#)|\/tos-[^/]+-(?:avt|image|photomode|cropcenter))/i;
+
+    // Check if item.url or pageUrl has an exact TikTok video ID:
+    let resolvedItemUrl = item.url;
+    if (/tiktok\.com/i.test(resolvedItemUrl) && !/\/video\/\d+/.test(resolvedItemUrl)) {
+      const vidMatch =
+        (item.pageUrl && item.pageUrl.match(/\/video\/(\d{15,22})/)) ||
+        (Array.isArray(item.fallbackStreamUrls) &&
+          item.fallbackStreamUrls.join(' ').match(/\/video\/(\d{15,22})/));
+      if (vidMatch) {
+        resolvedItemUrl = `https://www.tiktok.com/@tiktok/video/${vidMatch[1]}`;
+      }
+    }
 
     // Build candidate URLs to try in order:
     // 1. Primary URL (if not dummy asset)
     // 2. Any fallback stream URLs (.m3u8 / .mp4 / TikTok CDN) captured by the Chrome Extension
-    const rawCandidates = [item.url, ...(item.fallbackStreamUrls || [])];
+    const rawCandidates = [resolvedItemUrl, ...(item.fallbackStreamUrls || [])];
     const candidateUrls: string[] = [];
     for (const u of rawCandidates) {
       if (!u || candidateUrls.includes(u)) continue;
@@ -624,10 +636,19 @@ export class DownloadEngine extends EventEmitter {
           u.toLowerCase().includes('.m3u8') ||
           /\.(mp4|webm|mkv|mov|flv|mp3|m4a|ts)(\?|$)/i.test(u) ||
           u.includes('/video/tos/') ||
-          /[\?&]mime_type=(?:video|audio)/i.test(u) ||
+          u.includes('media-video') ||
+          /[\?&]mime_type=video/i.test(u) ||
           u.includes('.tiktokcdn.com/') ||
           u.includes('.byteoversea.com/') ||
           u.includes('.ibytedtos.com/')
+      );
+
+      const companionAudio = candidateUrls.find(
+        (u) =>
+          u !== streamTarget &&
+          (u.includes('media-audio') ||
+            /[\?&]mime_type=audio/i.test(u) ||
+            /\.(m4a|mp3|aac)(\?|$)/i.test(u))
       );
 
       if (streamTarget) {
@@ -635,7 +656,8 @@ export class DownloadEngine extends EventEmitter {
           downloadedTempFile = await this.executeFfmpegDirectStreamPull(
             item,
             streamTarget,
-            workDir
+            workDir,
+            companionAudio
           );
         } catch (err: any) {
           if (!lastError) {
@@ -655,6 +677,54 @@ export class DownloadEngine extends EventEmitter {
       this.saveState();
       this.emit('downloads-updated', this.getAllItems());
       return;
+    }
+
+    // Audio stream verification check: if user wanted video, ensure video has an audio track
+    if (downloadedTempFile && fs.existsSync(downloadedTempFile) && !isAudioRequest) {
+      const ffprobeBin = this.resolveFfprobeBinary();
+      if (ffprobeBin && fs.existsSync(ffprobeBin)) {
+        try {
+          const hasAudio = execSync(
+            `"${ffprobeBin}" -v error -select_streams a:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${downloadedTempFile}"`,
+            { encoding: 'utf-8', timeout: 5000 }
+          ).trim();
+
+          if (!hasAudio) {
+            const companionAudio = candidateUrls.find(
+              (u) =>
+                u.includes('media-audio') ||
+                /[\?&]mime_type=audio/i.test(u) ||
+                /\.(m4a|mp3|aac)(\?|$)/i.test(u)
+            );
+            if (companionAudio) {
+              const ffmpegBin = this.resolveFfmpegBinary();
+              if (ffmpegBin && fs.existsSync(ffmpegBin)) {
+                const mergedAudioFile = path.join(workDir, 'merged_audio_track.mp4');
+                const headers: Record<string, string> = {
+                  'User-Agent': DEFAULT_USER_AGENT,
+                  ...(item.headers || {}),
+                };
+                if (item.pageUrl && !headers['Referer']) headers['Referer'] = item.pageUrl;
+                const headerLines = Object.entries(headers)
+                  .filter(([, v]) => Boolean(v))
+                  .map(([k, v]) => `${k}: ${v}\r\n`)
+                  .join('');
+
+                execSync(
+                  `"${ffmpegBin}" -y -i "${downloadedTempFile}" -headers "${headerLines.replace(/"/g, '\\"')}" -i "${companionAudio}" -c:v copy -c:a aac -movflags +faststart "${mergedAudioFile}"`,
+                  { stdio: 'ignore', timeout: 35000 }
+                );
+
+                if (fs.existsSync(mergedAudioFile) && fs.statSync(mergedAudioFile).size > 10000) {
+                  downloadedTempFile = mergedAudioFile;
+                }
+              }
+            }
+          }
+        } catch {
+          // Ignore probe errors
+        }
+      }
     }
 
     try {
@@ -892,7 +962,8 @@ export class DownloadEngine extends EventEmitter {
   private executeFfmpegDirectStreamPull(
     item: DownloadItem,
     streamUrl: string,
-    workDir: string
+    workDir: string,
+    audioStreamUrl?: string
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const ffmpegBin = this.resolveFfmpegBinary();
@@ -921,12 +992,14 @@ export class DownloadEngine extends EventEmitter {
         headerLines,
         '-i',
         streamUrl,
-        '-c',
-        'copy',
-        '-bsf:a',
-        'aac_adtstoasc',
-        outFile,
       ];
+
+      if (audioStreamUrl) {
+        args.push('-headers', headerLines, '-i', audioStreamUrl);
+        args.push('-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart', outFile);
+      } else {
+        args.push('-c', 'copy', '-bsf:a', 'aac_adtstoasc', outFile);
+      }
 
       for (const seg of item.segments) {
         seg.info = 'FFmpeg Doğrudan Akış Yakalayıcı ile indiriliyor...';

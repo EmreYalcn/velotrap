@@ -142,8 +142,12 @@ chrome.webRequest.onHeadersReceived.addListener(
       pathname.endsWith('.m4s') ||
       pathname.endsWith('.vtt') ||
       pathname.endsWith('.jpg') ||
+      pathname.endsWith('.jpeg') ||
       pathname.endsWith('.png') ||
+      pathname.endsWith('.webp') ||
       pathname.endsWith('.gif') ||
+      pathname.endsWith('.svg') ||
+      pathname.endsWith('.ico') ||
       pathname.endsWith('.woff2') ||
       pathname.endsWith('.css') ||
       pathname.endsWith('.js') ||
@@ -151,7 +155,10 @@ chrome.webRequest.onHeadersReceived.addListener(
       url.includes('googlevideo.com/videoplayback') ||
       url.includes('sf16-website-login') ||
       url.includes('tiktok_web_login_static') ||
-      url.includes('playback1.mp4')
+      url.includes('playback1.mp4') ||
+      url.includes('cropcenter') ||
+      url.includes('photomode') ||
+      url.includes('tos-alisg-avt-')
     ) {
       return;
     }
@@ -174,7 +181,9 @@ chrome.webRequest.onHeadersReceived.addListener(
     const isMediaExt =
       /\.(mp4|webm|mkv|mov|flv|avi|mp3|m4a|wav|aac|ogg)$/i.test(pathname) ||
       /[\?&]mime_type=(?:video|audio)/i.test(url) ||
-      url.includes('/video/tos/');
+      url.includes('/video/tos/') ||
+      url.includes('media-video') ||
+      url.includes('media-audio');
     const isMediaMime =
       contentType.startsWith('video/') ||
       contentType.startsWith('audio/') ||
@@ -226,7 +235,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         u.includes('sf16-website-login') ||
         u.includes('tiktok_web_login_static') ||
         u.includes('playback1.mp4') ||
-        /\.json(\?|$)/i.test(u)
+        u.includes('cropcenter') ||
+        u.includes('photomode') ||
+        u.includes('tos-alisg-avt-') ||
+        /\.(jpe?g|png|gif|webp|svg|ico|json)(\?|$)/i.test(u)
       ) {
         sendResponse({ ok: false });
         return false;

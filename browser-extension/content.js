@@ -1168,8 +1168,8 @@
     return `${(bytes / Math.pow(k, i)).toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`;
   }
 
-  const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
-  const TIKTOK_STREAM_REGEX = /(?:\/video\/tos\/|[\?&]mime_type=(?:video|audio)|\.tiktokcdn\.com\/|\.byteoversea\.com\/|\.ibytedtos\.com\/)/i;
+  const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/|\.(?:jpe?g|png|gif|webp|svg|ico|woff2?)(?:\?|$|#)|\/tos-[^/]+-(?:avt|image|photomode|cropcenter))/i;
+  const TIKTOK_STREAM_REGEX = /(?:\/video\/tos\/|[\?&]mime_type=(?:video|audio)|media-(?:video|audio))/i;
 
   /**
    * Scans Performance API + DOM + page-hook for all .m3u8 / .mp4 stream URLs in this frame
@@ -1304,26 +1304,115 @@
         }
       } catch {}
     } else if (hostName.includes('tiktok.com')) {
-      let foundTiktokLink = '';
-      if (/\/video\/\d+/.test(window.location.href)) {
-        foundTiktokLink = window.location.href.split('?')[0];
+      let foundVideoId = '';
+      let authorName = 'tiktok';
+
+      // 1. Check window.location.href (e.g. https://www.tiktok.com/@user/video/1234567890123456789)
+      const locMatch = window.location.href.match(/\/@([^\/?#]+)\/video\/(\d{15,22})/);
+      if (locMatch) {
+        authorName = locMatch[1];
+        foundVideoId = locMatch[2];
       } else {
-        let cur = videoEl;
-        while (cur && cur !== document.body) {
-          const a = cur.querySelector && cur.querySelector('a[href*="/video/"]');
-          if (a && a.href && /\/video\/\d+/.test(a.href)) {
-            foundTiktokLink = a.href.split('?')[0];
+        const simpleLoc = window.location.href.match(/\/video\/(\d{15,22})/);
+        if (simpleLoc) foundVideoId = simpleLoc[1];
+      }
+
+      // 2. Search card around videoEl
+      const card = (videoEl.closest && videoEl.closest(
+        '[data-e2e="recommend-list-item-container"], [data-e2e="feed-item"], [class*="ItemContainer"], [class*="DivItemContainer"], [class*="FeedVideoItem"], [class*="DivContentContainer"], div[tabindex="-1"], section'
+      )) || videoEl.parentElement?.parentElement?.parentElement || videoEl.parentElement;
+
+      if (!foundVideoId && card) {
+        // 2a. Any anchor with /video/<id>
+        const anchors = card.querySelectorAll ? card.querySelectorAll('a[href*="/video/"]') : [];
+        for (const a of anchors) {
+          const href = a.href || a.getAttribute('href') || '';
+          const m = href.match(/\/@([^\/?#]+)\/video\/(\d{15,22})/) || href.match(/\/video\/(\d{15,22})/);
+          if (m) {
+            if (m.length === 3) authorName = m[1];
+            foundVideoId = m[m.length - 1];
             break;
           }
-          cur = cur.parentElement;
+        }
+
+        // 2b. XGPlayer ID or data attributes: id="xgwrapper-0-<video_id>"
+        if (!foundVideoId) {
+          const els = card.querySelectorAll ? card.querySelectorAll('[id*="xgwrapper"], [id*="xgplayer"], [id*="video"], [data-id], [data-video-id], [data-aweme-id], div, button') : [];
+          for (const el of els) {
+            const attrStr = `${el.id || ''} ${el.getAttribute('data-id') || ''} ${el.getAttribute('data-video-id') || ''} ${el.getAttribute('data-aweme-id') || ''}`;
+            const m = attrStr.match(/\b(\d{18,21})\b/);
+            if (m) {
+              foundVideoId = m[1];
+              break;
+            }
+          }
+        }
+
+        // 2c. Scan card HTML for 18-21 digit video ID
+        if (!foundVideoId) {
+          try {
+            const html = card.innerHTML || '';
+            const m = html.match(/(?:xgwrapper-\d+-|xgplayer-|data-id=["']?|data-video-id=["']?|\/video\/)(\d{18,21})/);
+            if (m) foundVideoId = m[1];
+          } catch {}
+        }
+
+        // 2d. Find author username in the card
+        if (authorName === 'tiktok') {
+          const authorA = card.querySelector ? card.querySelector('a[href*="/@"]') : null;
+          if (authorA) {
+            const aHref = authorA.getAttribute('href') || authorA.href || '';
+            const aMatch = aHref.match(/\/@([^\/?#]+)/);
+            if (aMatch) authorName = aMatch[1];
+          }
         }
       }
-      if (foundTiktokLink) targetUrl = foundTiktokLink;
 
+      // 3. Inspect React Fiber on videoEl or its parents
+      if (!foundVideoId) {
+        let curEl = videoEl;
+        for (let i = 0; i < 8 && curEl; i++) {
+          const keys = Object.keys(curEl);
+          for (const k of keys) {
+            if (k.startsWith('__reactFiber$') || k.startsWith('__reactProps$') || k.startsWith('__reactInternalInstance$')) {
+              try {
+                let fiber = curEl[k];
+                for (let depth = 0; depth < 12 && fiber; depth++) {
+                  const p = fiber.memoizedProps || fiber.props;
+                  if (p) {
+                    const rawId = (p.item && (p.item.id || p.item.awemeId)) ||
+                                  (p.itemInfo && (p.itemInfo.id || p.itemInfo.itemId)) ||
+                                  (p.video && (p.video.id || p.video.videoId)) ||
+                                  p.awemeId ||
+                                  (p.id && /^\d{18,21}$/.test(p.id) ? p.id : null);
+                    if (rawId) {
+                      foundVideoId = String(rawId);
+                      if (p.item && p.item.author && p.item.author.uniqueId) {
+                        authorName = p.item.author.uniqueId;
+                      }
+                      break;
+                    }
+                  }
+                  fiber = fiber.return || fiber.parent;
+                }
+              } catch {}
+            }
+            if (foundVideoId) break;
+          }
+          if (foundVideoId) break;
+          curEl = curEl.parentElement;
+        }
+      }
+
+      if (foundVideoId) {
+        targetUrl = `https://www.tiktok.com/@${authorName}/video/${foundVideoId}`;
+      }
+
+      // Extract title from video description
       let cur = videoEl;
       while (cur && cur !== document.body) {
         const descEl = cur.querySelector && cur.querySelector(
-          '[data-e2e="video-desc"], [data-e2e="browse-video-desc"], h1[data-e2e="video-title"], [class*="DivTextContainer"], [class*="SpanText"]'
+          '[data-e2e="video-desc"], [data-e2e="browse-video-desc"], h1[data-e2e="video-title"], [class*="DivTextContainer"], [class*="SpanText"], [class*="DivDescription"]'
         );
         if (descEl && descEl.innerText && descEl.innerText.trim()) {
           title = descEl.innerText.trim().slice(0, 80);
@@ -1449,12 +1538,26 @@
     widget.classList.remove('visible');
   }
 
+  function getBestActiveVideo() {
+    if (activeVideo && document.contains(activeVideo) && !activeVideo.paused) {
+      return activeVideo;
+    }
+    const videos = Array.from(document.querySelectorAll('video')).filter(
+      (v) => document.contains(v) && v.getBoundingClientRect().width >= 120
+    );
+    const playing = videos.find((v) => !v.paused && v.readyState > 1);
+    if (playing) return playing;
+    return activeVideo || videos[0] || null;
+  }
+
   // Direct 1-click MP3 button right on the floating bar!
   quickMp3Btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!activeVideo) return;
-    const ctx = extractVideoContext(activeVideo);
+    const vid = getBestActiveVideo();
+    if (!vid) return;
+    activeVideo = vid;
+    const ctx = extractVideoContext(vid);
     const defaultAnalysis = getInstantDefaultAnalysis(ctx);
     const mp3Fmt = defaultAnalysis.formats.find((f) => f.formatId === 'audio:mp3:320');
     triggerFormatDownload(defaultAnalysis, mp3Fmt, ctx);
@@ -1465,7 +1568,9 @@
     e.preventDefault();
     e.stopPropagation();
 
-    if (!activeVideo) return;
+    const vid = getBestActiveVideo();
+    if (!vid) return;
+    activeVideo = vid;
 
     if (isDropdownOpen) {
       isDropdownOpen = false;
@@ -1477,7 +1582,7 @@
     isDropdownOpen = true;
     widget.classList.add('open');
 
-    const ctx = extractVideoContext(activeVideo);
+    const ctx = extractVideoContext(vid);
     currentCtx = ctx;
     ddTitle.textContent = ctx.title;
 
@@ -1645,7 +1750,7 @@
     });
 
     videoEl.addEventListener('play', () => {
-      if (!activeVideo) {
+      if (!isDropdownOpen) {
         showWidgetForVideo(videoEl);
       }
     });

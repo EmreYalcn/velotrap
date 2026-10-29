@@ -2,8 +2,8 @@
   if (window.__IDM_PRO_PAGE_HOOK__) return;
   window.__IDM_PRO_PAGE_HOOK__ = true;
 
-  const MEDIA_REGEX = /(?:\.(m3u8|mp4|webm|mkv|mov|flv|mpd|m4a|mp3)(?:\?|$|#)|[\?&]mime_type=(?:video|audio)[^&]*|\/video\/tos\/|\.tiktokcdn\.com\/|\.byteoversea\.com\/|\.ibytedtos\.com\/)/i;
-  const EXCLUDE_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+  const MEDIA_REGEX = /(?:\.(m3u8|mp4|webm|mkv|mov|flv|mpd|m4a|mp3)(?:\?|$|#)|[\?&]mime_type=(?:video|audio)[^&]*|\/video\/tos\/|media-(?:video|audio))/i;
+  const EXCLUDE_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/|\.(?:jpe?g|png|gif|webp|svg|ico|woff2?)(?:\?|$|#)|\/tos-[^/]+-(?:avt|image|photomode|cropcenter))/i;
 
   function reportStream(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return;

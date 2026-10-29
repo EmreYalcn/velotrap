@@ -429,7 +429,7 @@ function startCompanionHttpBridge(): void {
             return;
           }
 
-          const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/)/i;
+          const EXCLUDE_STREAM_REGEX = /(?:sf16-website-login|tiktok_web_login_static|playback1\.mp4|\.json(?:\?|$)|static\/(?:js|css)\/|\.(?:jpe?g|png|gif|webp|svg|ico|woff2?)(?:\?|$|#)|\/tos-[^/]+-(?:avt|image|photomode|cropcenter))/i;
           let targetUrl = payload.url;
           const cleanFallbacks = (Array.isArray(payload.fallbackStreamUrls) ? payload.fallbackStreamUrls : []).filter(
             (u: any) => typeof u === 'string' && !EXCLUDE_STREAM_REGEX.test(u)
@@ -439,6 +439,15 @@ function startCompanionHttpBridge(): void {
               targetUrl = cleanFallbacks[0];
             } else if (payload.pageUrl && !EXCLUDE_STREAM_REGEX.test(payload.pageUrl)) {
               targetUrl = payload.pageUrl;
+            }
+          }
+
+          if (/tiktok\.com/i.test(targetUrl) && !/\/video\/\d+/.test(targetUrl)) {
+            const vidMatch =
+              (payload.pageUrl && payload.pageUrl.match(/\/video\/(\d{15,22})/)) ||
+              cleanFallbacks.join(' ').match(/\/video\/(\d{15,22})/);
+            if (vidMatch) {
+              targetUrl = `https://www.tiktok.com/@tiktok/video/${vidMatch[1]}`;
             }
           }
 
