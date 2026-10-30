@@ -414,11 +414,11 @@ export class VideoEngine {
         '--geo-bypass',
       ];
 
-      // YouTube PO-Token & Anti-Bot Shield (Player Client Fallback Cascade)
+      // YouTube Anti-Bot Shield (Modern player client cascade: default, tv, web)
       if (this.downloadEngine.getSettings().youtubeAntiBot !== false) {
         args.push(
           '--extractor-args',
-          'youtube:player_client=android,web,mweb,ios;player_skip=configs'
+          'youtube:player_client=default,tv,web'
         );
       }
 

@@ -167,6 +167,14 @@ async function runTests() {
   assert.equal(formatSecondsToTime(3920), '01:05:20');
   console.log('   ✓ Clip & Download time parsing & formatting verified');
 
+  console.log('5) Testing 4K/UHD and Clip Range format option logic...');
+  const test4kAnalysis = await videoEngine.analyzeUrl('https://www.youtube.com/watch?v=aqz-KE-bpKQ').catch(() => null);
+  if (test4kAnalysis && test4kAnalysis.formats) {
+    const has4k = test4kAnalysis.formats.some(f => f.resolution.includes('2160p') || f.resolution.includes('4K'));
+    assert.ok(has4k, 'YouTube 4K video must provide 2160p / 4K resolution option and not be capped at 360p');
+    console.log('   ✓ 4K Ultra HD format detected successfully:', test4kAnalysis.formats[0].resolution);
+  }
+
   engine.destroy();
   server.close();
   fs.rmSync(tmpDir, { recursive: true, force: true });

@@ -461,14 +461,17 @@ export class DownloadEngine extends EventEmitter {
     if (parsedPath.endsWith('.m3u8') || options.url.toLowerCase().includes('.m3u8')) {
       sourceType = 'hls';
     } else if (
+      isAudioRequest ||
+      Boolean(options.clipRange?.startTime) ||
+      fmtId === 'best' ||
+      fmtId.startsWith('height:')
+    ) {
+      sourceType = 'yt-dlp';
+    } else if (
       sourceType === 'direct' &&
-      (isAudioRequest ||
-        Boolean(options.clipRange?.startTime) ||
-        fmtId === 'best' ||
-        fmtId.startsWith('height:') ||
-        !/\.(mp4|webm|mkv|mov|avi|flv|mp3|m4a|wav|aac|zip|rar|7z|tar|gz|dmg|pkg|exe|iso|pdf|doc|docx|xls|xlsx)$/i.test(
-          parsedPath
-        ))
+      !/\.(mp4|webm|mkv|mov|avi|flv|mp3|m4a|wav|aac|zip|rar|7z|tar|gz|dmg|pkg|exe|iso|pdf|doc|docx|xls|xlsx)$/i.test(
+        parsedPath
+      )
     ) {
       // Check if it's a direct binary file via fast probe; if HTML or streaming site, use yt-dlp universal engine!
       try {
@@ -931,7 +934,7 @@ export class DownloadEngine extends EventEmitter {
           '-S',
           `res:${heightMatch},vcodec:h264,acodec:m4a,ext:mp4:m4a`,
           '-f',
-          `bestvideo[height<=${heightMatch}][vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[height<=${heightMatch}][vcodec^=avc1]/bestvideo[height<=${heightMatch}]+bestaudio/best[height<=${heightMatch}]/best`,
+          `bestvideo[height<=?${heightMatch}]+bestaudio/best[height<=?${heightMatch}]/bestvideo+bestaudio/best`,
           '--merge-output-format',
           'mp4'
         );
@@ -947,7 +950,7 @@ export class DownloadEngine extends EventEmitter {
           '-S',
           'vcodec:h264,acodec:m4a,ext:mp4:m4a',
           '-f',
-          `${fmtId}+bestaudio[acodec^=mp4a]/${fmtId}+bestaudio/${fmtId}/bestvideo+bestaudio/best`,
+          `${fmtId}+bestaudio/${fmtId}/bestvideo+bestaudio/best`,
           '--merge-output-format',
           'mp4'
         );
@@ -956,7 +959,7 @@ export class DownloadEngine extends EventEmitter {
           '-S',
           'res,vcodec:h264,acodec:m4a,ext:mp4:m4a',
           '-f',
-          'bestvideo[vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[vcodec^=avc1]/bestvideo+bestaudio/best',
+          'bestvideo+bestaudio/best',
           '--merge-output-format',
           'mp4'
         );
@@ -976,31 +979,14 @@ export class DownloadEngine extends EventEmitter {
         const section = `*${startFormatted}-${endFormatted}`;
 
         args.push('--download-sections', section);
-
-        // Blazing-fast direct byte-range seeking via FFmpeg input options
-        if (validEndSec > 0) {
-          args.push(
-            '--downloader',
-            'ffmpeg',
-            '--downloader-args',
-            `ffmpeg_i:-ss ${startSec} -to ${validEndSec}`
-          );
-        } else {
-          args.push(
-            '--downloader',
-            'ffmpeg',
-            '--downloader-args',
-            `ffmpeg_i:-ss ${startSec}`
-          );
-        }
+        args.push('--force-keyframes-at-cuts');
       }
 
-      // PO-Token & YouTube Anti-Bot Shield (Player Client Fallback Cascade)
-      // Ensures downloads never get blocked by "Sign in to confirm you're not a bot" or 403 Forbidden
+      // Modern YouTube Anti-Bot & Player Client Fallback Cascade
       if (this.settings.youtubeAntiBot !== false) {
         args.push(
           '--extractor-args',
-          'youtube:player_client=android,web,mweb,ios;player_skip=configs'
+          'youtube:player_client=default,tv,web'
         );
       }
 

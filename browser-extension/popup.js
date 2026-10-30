@@ -50,6 +50,10 @@ const I18N = {
     // Presets
     pBestRes: 'En Yüksek Kalite (Otomatik)',
     pBestNote: 'Mevcut en yüksek çözünürlüğü otomatik indirir',
+    p4kRes: '4K Ultra HD (2160p)',
+    p4kNote: 'MP4 • Maksimum Ultra Net Çözünürlük (Varsa 4K, yoksa en üst)',
+    p2kRes: '2K QHD (1440p)',
+    p2kNote: 'MP4 • Yüksek Çözünürlük (Varsa 1440p, yoksa en üst)',
     pFhdRes: '1080p Full HD',
     pFhdNote: 'MP4 • Yüksek Kalite (Yoksa en yakın üst kalite)',
     pHdRes: '720p HD',
@@ -99,6 +103,10 @@ const I18N = {
     // Presets
     pBestRes: 'Highest Quality (Auto)',
     pBestNote: 'Automatically downloads highest available resolution',
+    p4kRes: '4K Ultra HD (2160p)',
+    p4kNote: 'MP4 • Maximum Ultra Crisp Resolution (4K if available)',
+    p2kRes: '2K QHD (1440p)',
+    p2kNote: 'MP4 • Studio Resolution (1440p if available)',
     pFhdRes: '1080p Full HD',
     pFhdNote: 'MP4 • High Quality (or closest available)',
     pHdRes: '720p HD',
@@ -221,6 +229,20 @@ function buildInstantPopupAnalysis(url, title) {
         ext: 'mp4',
         resolution: t('pBestRes'),
         note: t('pBestNote'),
+        isAudioOnly: false,
+      },
+      {
+        formatId: 'height:2160',
+        ext: 'mp4',
+        resolution: t('p4kRes'),
+        note: t('p4kNote'),
+        isAudioOnly: false,
+      },
+      {
+        formatId: 'height:1440',
+        ext: 'mp4',
+        resolution: t('p2kRes'),
+        note: t('p2kNote'),
         isAudioOnly: false,
       },
       {
