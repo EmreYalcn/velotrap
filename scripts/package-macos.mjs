@@ -14,10 +14,16 @@ console.log(`[Packager] Packaging Velotrap v${version} for macOS (Apple Silicon 
 
 const releaseDir = path.join(rootDir, 'release');
 const targetApp = path.join(releaseDir, 'Velotrap.app');
-const electronSource = path.join(rootDir, 'node_modules', 'electron', 'dist', 'Velotrap.app');
+let electronSource = path.join(rootDir, 'node_modules', 'electron', 'dist', 'Electron.app');
+if (!fs.existsSync(electronSource)) {
+  electronSource = path.join(rootDir, 'node_modules', 'electron', 'dist', 'Velotrap.app');
+}
+if (!fs.existsSync(electronSource) && fs.existsSync('/Applications/Velotrap.app')) {
+  electronSource = '/Applications/Velotrap.app';
+}
 
 if (!fs.existsSync(electronSource)) {
-  console.error('[Packager] Source Velotrap.app not found in node_modules/electron/dist');
+  console.error('[Packager] Source Electron.app or Velotrap.app not found');
   process.exit(1);
 }
 
@@ -27,6 +33,13 @@ fs.mkdirSync(releaseDir, { recursive: true });
 
 console.log('[Packager] Copying base macOS application bundle...');
 execSync(`cp -R "${electronSource}" "${targetApp}"`);
+
+// Ensure Frameworks are present
+const frameworksDir = path.join(targetApp, 'Contents', 'Frameworks');
+if (!fs.existsSync(frameworksDir) && fs.existsSync('/Applications/Velotrap.app/Contents/Frameworks')) {
+  console.log('[Packager] Restoring macOS Frameworks...');
+  execSync(`cp -R "/Applications/Velotrap.app/Contents/Frameworks" "${frameworksDir}"`);
+}
 
 const resourcesDir = path.join(targetApp, 'Contents', 'Resources');
 const defaultAppAsar = path.join(resourcesDir, 'default_app.asar');
@@ -55,7 +68,35 @@ fs.writeFileSync(path.join(appDir, 'package.json'), JSON.stringify(prodPkg, null
 
 // 3. Ensure Info.plist is fully polished
 const infoPlistPath = path.join(targetApp, 'Contents', 'Info.plist');
-let plist = fs.readFileSync(infoPlistPath, 'utf8');
+let plist = '';
+if (fs.existsSync(infoPlistPath)) {
+  plist = fs.readFileSync(infoPlistPath, 'utf8');
+} else if (fs.existsSync('/Applications/Velotrap.app/Contents/Info.plist')) {
+  plist = fs.readFileSync('/Applications/Velotrap.app/Contents/Info.plist', 'utf8');
+} else {
+  plist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDisplayName</key>
+  <string>Velotrap</string>
+  <key>CFBundleExecutable</key>
+  <string>Velotrap</string>
+  <key>CFBundleIconFile</key>
+  <string>electron.icns</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.velotrap.app</string>
+  <key>CFBundleName</key>
+  <string>Velotrap</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>${version}</string>
+  <key>CFBundleVersion</key>
+  <string>${version}</string>
+</dict>
+</plist>`;
+}
 plist = plist.replace(/<key>CFBundleDisplayName<\/key>\s*<string>[^<]*<\/string>/, '<key>CFBundleDisplayName</key>\n\t<string>Velotrap</string>');
 plist = plist.replace(/<key>CFBundleName<\/key>\s*<string>[^<]*<\/string>/, '<key>CFBundleName</key>\n\t<string>Velotrap</string>');
 plist = plist.replace(/<key>CFBundleExecutable<\/key>\s*<string>[^<]*<\/string>/, '<key>CFBundleExecutable</key>\n\t<string>Velotrap</string>');
@@ -65,7 +106,7 @@ plist = plist.replace(/<key>CFBundleVersion<\/key>\s*<string>[^<]*<\/string>/, `
 fs.writeFileSync(infoPlistPath, plist, 'utf8');
 
 // 4. Ensure permissions
-execSync(`chmod +x "${path.join(targetApp, 'Contents', 'MacOS', 'Velotrap')}"`);
+if (fs.existsSync(path.join(targetApp, 'Contents', 'MacOS', 'Electron'))) { fs.renameSync(path.join(targetApp, 'Contents', 'MacOS', 'Electron'), path.join(targetApp, 'Contents', 'MacOS', 'Velotrap')); } execSync(`chmod +x "${path.join(targetApp, 'Contents', 'MacOS', 'Velotrap')}"`);
 
 // Strip quarantine attribute if macOS added any
 try {

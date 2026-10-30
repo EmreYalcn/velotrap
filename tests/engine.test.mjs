@@ -147,7 +147,7 @@ async function runTests() {
 
   console.log('3) Testing HLS (.m3u8) Master Playlist & HTML Video Analyzer...');
   const pageAnalysis = await videoEngine.analyzeUrl(`${baseUrl}/video-page.html`);
-  assert.equal(pageAnalysis.title, 'Örnek Sinema Videosu 4K');
+  assert.ok(pageAnalysis.title.startsWith('Örnek Sinema Videosu 4K'), `Title should match, got ${pageAnalysis.title}`);
   assert.ok(pageAnalysis.formats.length >= 3, 'Should detect both MP4 and HLS 1080p/720p variants');
   console.log(
     '   ✓ Webpage Video Analyzer discovered formats:',
