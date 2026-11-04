@@ -380,13 +380,19 @@
   host.id = 'idm-pro-extension-host';
   Object.assign(host.style, {
     position: 'fixed',
-    top: '0',
-    left: '0',
-    width: '0px',
-    height: '0px',
+    top: '0px',
+    left: '0px',
     zIndex: '2147483647',
-    pointerEvents: 'none',
+    pointerEvents: 'auto',
+    display: 'none',
     overflow: 'visible',
+    width: 'max-content',
+    height: 'max-content',
+    maxWidth: '100vw',
+    maxHeight: '100vh',
+    margin: '0',
+    padding: '0',
+    border: 'none',
   });
 
   function attachHostToDocument() {
@@ -407,13 +413,10 @@
     :host {
       all: initial !important;
       position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 0 !important;
-      height: 0 !important;
-      pointer-events: none !important;
       z-index: 2147483647 !important;
+      pointer-events: auto !important;
       overflow: visible !important;
+      user-select: none !important;
     }
 
     * {
@@ -424,10 +427,10 @@
     }
 
     .idm-widget {
-      position: fixed;
+      position: relative !important;
       z-index: 2147483647 !important;
       pointer-events: auto !important;
-      display: none;
+      display: flex;
       flex-direction: column;
       align-items: flex-end;
       user-select: none;
@@ -1333,7 +1336,7 @@
     dragStartX = e.clientX;
     dragStartY = e.clientY;
 
-    const rect = widget.getBoundingClientRect();
+    const rect = host.getBoundingClientRect();
     widgetStartLeft = rect.left;
     widgetStartTop = rect.top;
 
@@ -1356,13 +1359,15 @@
       let newLeft = widgetStartLeft + dx;
       let newTop = widgetStartTop + dy;
 
-      const maxLeft = Math.max(5, window.innerWidth - widget.offsetWidth - 5);
-      const maxTop = Math.max(5, window.innerHeight - widget.offsetHeight - 5);
+      const wWidth = host.offsetWidth || widget.offsetWidth || 220;
+      const wHeight = host.offsetHeight || widget.offsetHeight || 36;
+      const maxLeft = Math.max(5, window.innerWidth - wWidth - 5);
+      const maxTop = Math.max(5, window.innerHeight - wHeight - 5);
       newLeft = Math.max(5, Math.min(newLeft, maxLeft));
       newTop = Math.max(5, Math.min(newTop, maxTop));
 
-      widget.style.left = `${newLeft}px`;
-      widget.style.top = `${newTop}px`;
+      host.style.left = `${newLeft}px`;
+      host.style.top = `${newTop}px`;
 
       if (activeVideo && document.contains(activeVideo)) {
         const vRect = activeVideo.getBoundingClientRect();
@@ -1380,7 +1385,23 @@
     window.removeEventListener('pointerup', onWindowPointerUp);
   }
 
+  host.addEventListener('pointerdown', (e) => {
+    cancelHideOnHover();
+    e.stopPropagation();
+    onWidgetPointerDown(e);
+  });
+  host.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+  });
+  host.addEventListener('mouseup', (e) => {
+    e.stopPropagation();
+  });
+  host.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
   widget.addEventListener('pointerdown', (e) => {
+    cancelHideOnHover();
     e.stopPropagation();
     onWidgetPointerDown(e);
   });
@@ -1433,6 +1454,17 @@
       hideTimeout = null;
     }
   }
+
+  host.addEventListener('mouseenter', cancelHideOnHover);
+  host.addEventListener('pointerenter', cancelHideOnHover);
+  host.addEventListener('pointerover', cancelHideOnHover);
+  host.addEventListener('mousemove', cancelHideOnHover);
+  host.addEventListener('mouseleave', () => {
+    isHoveringWidget = false;
+    if (!isDropdownOpen && !isDragging) {
+      scheduleHide();
+    }
+  });
 
   widget.addEventListener('mouseenter', cancelHideOnHover);
   widget.addEventListener('pointerenter', cancelHideOnHover);
@@ -1780,10 +1812,14 @@
       rect.top > window.innerHeight - 40
     ) {
       if (!isDropdownOpen && !isDragging) {
+        host.style.display = 'none';
         widget.classList.remove('visible');
       }
       return;
     }
+
+    const wWidth = host.offsetWidth || widget.offsetWidth || 220;
+    const wHeight = host.offsetHeight || widget.offsetHeight || 36;
 
     let top, left;
     if (customOffsetX !== null && customOffsetY !== null) {
@@ -1792,16 +1828,16 @@
     } else {
       top = Math.max(10, rect.top + 10);
       const rightEdge = Math.min(window.innerWidth - 10, rect.right - 10);
-      left = Math.max(10, rightEdge - widget.offsetWidth);
+      left = Math.max(10, rightEdge - wWidth);
     }
 
-    const maxLeft = Math.max(5, window.innerWidth - widget.offsetWidth - 5);
-    const maxTop = Math.max(5, window.innerHeight - widget.offsetHeight - 5);
+    const maxLeft = Math.max(5, window.innerWidth - wWidth - 5);
+    const maxTop = Math.max(5, window.innerHeight - wHeight - 5);
     left = Math.max(5, Math.min(left, maxLeft));
     top = Math.max(5, Math.min(top, maxTop));
 
-    widget.style.top = `${top}px`;
-    widget.style.left = `${left}px`;
+    host.style.top = `${top}px`;
+    host.style.left = `${left}px`;
   }
 
   function showWidgetForVideo(videoEl) {
@@ -1813,6 +1849,7 @@
       activeVideo = videoEl;
       btnLabel.textContent = t('downloadVideo');
     }
+    host.style.display = 'block';
     widget.classList.add('visible');
     requestAnimationFrame(updateWidgetPosition);
   }
@@ -1821,6 +1858,7 @@
     if (hideTimeout) clearTimeout(hideTimeout);
     hideTimeout = setTimeout(() => {
       if (!isHoveringWidget && !isDropdownOpen && !isDragging) {
+        host.style.display = 'none';
         widget.classList.remove('visible');
       }
     }, 1500);
@@ -1830,6 +1868,7 @@
     isDropdownOpen = false;
     widget.classList.remove('open');
     widget.classList.remove('visible');
+    host.style.display = 'none';
   }
 
   function getBestActiveVideo() {
@@ -2040,8 +2079,9 @@
   });
 
   function isCursorNearWidget(clientX, clientY, margin = 40) {
-    if (!widget.classList.contains('visible')) return false;
-    const wRect = widget.getBoundingClientRect();
+    if (host.style.display === 'none') return false;
+    const wRect = host.getBoundingClientRect();
+    if (!wRect || (wRect.width === 0 && wRect.height === 0)) return false;
     return (
       clientX >= wRect.left - margin &&
       clientX <= wRect.right + margin &&
