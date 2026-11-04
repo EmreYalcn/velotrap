@@ -502,17 +502,22 @@
       color: #ffffff;
       font-size: 11px;
       font-weight: 700;
-      cursor: pointer;
+      cursor: grab;
       backdrop-filter: blur(12px);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
       user-select: none;
+      touch-action: none;
     }
 
     .idm-mini-pill:hover {
       border-color: #38bdf8;
-      transform: scale(1.05);
       box-shadow: 0 6px 20px rgba(56, 189, 248, 0.35);
+    }
+
+    .idm-mini-pill:active,
+    .idm-widget.dragging .idm-mini-pill {
+      cursor: grabbing !important;
     }
 
     .idm-mini-drag {
@@ -1363,6 +1368,9 @@
     widget.classList.remove('dragging');
     window.removeEventListener('pointermove', onWindowPointerMove);
     window.removeEventListener('pointerup', onWindowPointerUp);
+    setTimeout(() => {
+      dragHasMoved = false;
+    }, 60);
   }
 
   widget.addEventListener('pointerdown', (e) => {
@@ -1388,8 +1396,26 @@
     requestAnimationFrame(updateWidgetPosition);
   });
 
-  bindAction(miniPill, () => {
+  // Mini pill (collapsed state) drag & click-to-expand handling
+  miniPill.addEventListener('pointerdown', (e) => {
+    cancelHideOnHover();
+    e.stopPropagation();
+    onWidgetPointerDown(e);
+  });
+
+  miniPill.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (dragHasMoved) return;
+    isCollapsed = false;
+    widget.classList.remove('collapsed');
+    requestAnimationFrame(updateWidgetPosition);
+  });
+
+  miniPill.addEventListener('touchend', (e) => {
+    if (dragHasMoved) return;
+    e.stopPropagation();
+    e.preventDefault();
     isCollapsed = false;
     widget.classList.remove('collapsed');
     requestAnimationFrame(updateWidgetPosition);
@@ -1410,6 +1436,7 @@
 
   if (dragHandle) dragHandle.addEventListener('dblclick', resetWidgetPosition);
   if (miniDrag) miniDrag.addEventListener('dblclick', resetWidgetPosition);
+  if (miniPill) miniPill.addEventListener('dblclick', resetWidgetPosition);
   if (ddDrag) ddDrag.addEventListener('dblclick', resetWidgetPosition);
 
   function cancelHideOnHover() {
