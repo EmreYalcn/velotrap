@@ -17,6 +17,21 @@ import {
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
+const globalHttpAgent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 60000,
+  maxSockets: 128,
+  maxFreeSockets: 64,
+});
+
+const globalHttpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 60000,
+  maxSockets: 128,
+  maxFreeSockets: 64,
+  rejectUnauthorized: false,
+});
+
 export function detectCategory(fileName: string, mimeType = ''): Exclude<DownloadCategory, 'all'> {
   const ext = path.extname(fileName).toLowerCase().replace('.', '');
   const videoExts = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', 'm4v', 'ts', 'm3u8', 'mpg', 'mpeg'];
@@ -328,6 +343,7 @@ export class DownloadEngine extends EventEmitter {
         {
           method: 'GET',
           headers: requestHeaders,
+          agent: client === https ? globalHttpsAgent : globalHttpAgent,
           timeout: 8000,
           rejectUnauthorized: false,
         },
@@ -414,6 +430,10 @@ export class DownloadEngine extends EventEmitter {
         req.destroy();
         reject(new Error('Bağlantı zaman aşımına uğradı'));
       });
+      req.on('socket', (sock) => {
+        sock.setNoDelay(true);
+      });
+
       req.end();
     });
   }
@@ -901,6 +921,16 @@ export class DownloadEngine extends EventEmitter {
         '--geo-bypass',
         '--concurrent-fragments',
         String(numConns),
+        '--buffer-size',
+        '1024K',
+        '--http-chunk-size',
+        '10M',
+        '--retries',
+        '10',
+        '--fragment-retries',
+        '10',
+        '--file-access-retries',
+        '5',
         '-o',
         outTemplate,
       ];
@@ -943,6 +973,8 @@ export class DownloadEngine extends EventEmitter {
         fmtId !== 'hls_best' &&
         !fmtId.startsWith('hls_') &&
         !fmtId.startsWith('sniff_') &&
+        !fmtId.startsWith('direct-') &&
+        !fmtId.startsWith('scraped_') &&
         !fmtId.includes('/') &&
         !fmtId.includes('+')
       ) {
@@ -979,14 +1011,13 @@ export class DownloadEngine extends EventEmitter {
         const section = `*${startFormatted}-${endFormatted}`;
 
         args.push('--download-sections', section);
-        args.push('--force-keyframes-at-cuts');
       }
 
-      // Modern YouTube Anti-Bot & Player Client Fallback Cascade
+      // Modern YouTube Anti-Bot & Player Client Fallback Cascade (excludes broken legacy tv client)
       if (this.settings.youtubeAntiBot !== false) {
         args.push(
           '--extractor-args',
-          'youtube:player_client=default,tv,web'
+          'youtube:player_client=all,-tv'
         );
       }
 
@@ -1001,9 +1032,9 @@ export class DownloadEngine extends EventEmitter {
         args.push('--plugin-dirs', p);
       }
 
-      const nodeBin = this.resolveNodeBinary();
-      if (nodeBin) {
-        args.push('--js-runtimes', `node:${nodeBin}`);
+      const jsRuntimes = this.resolveJsRuntimesArg();
+      if (jsRuntimes) {
+        args.push('--js-runtimes', jsRuntimes);
       }
 
       if (useCustomHeaders) {
@@ -1685,6 +1716,7 @@ export class DownloadEngine extends EventEmitter {
         {
           method: 'GET',
           headers,
+          agent: client === https ? globalHttpsAgent : globalHttpAgent,
           rejectUnauthorized: false,
         },
         (res) => {
@@ -1711,6 +1743,10 @@ export class DownloadEngine extends EventEmitter {
           let segLastTime = Date.now();
           let writeChain = Promise.resolve();
           let settled = false;
+          let pendingBytes = 0;
+          let isPaused = false;
+          const HIGH_WATER_MARK = 2 * 1024 * 1024; // 2 MB backpressure threshold
+          const LOW_WATER_MARK = 512 * 1024; // 512 KB resume threshold
 
           const finishSegment = () => {
             if (settled) return;
@@ -1728,7 +1764,11 @@ export class DownloadEngine extends EventEmitter {
               return;
             }
 
-            res.pause();
+            pendingBytes += chunk.length;
+            if (pendingBytes >= HIGH_WATER_MARK && !isPaused) {
+              isPaused = true;
+              res.pause();
+            }
 
             writeChain = writeChain
               .then(async () => {
@@ -1748,10 +1788,11 @@ export class DownloadEngine extends EventEmitter {
                 await fileHandle.write(chunk, 0, bytesToWrite, writeOffset);
                 seg.downloadedBytes += bytesToWrite;
                 item.downloadedBytes += bytesToWrite;
+                pendingBytes -= chunk.length;
 
                 const now = Date.now();
                 const dt = (now - segLastTime) / 1000;
-                if (dt >= 0.4) {
+                if (dt >= 0.3) {
                   seg.speedBps = Math.round((seg.downloadedBytes - segLastBytes) / dt);
                   segLastBytes = seg.downloadedBytes;
                   segLastTime = now;
@@ -1773,7 +1814,8 @@ export class DownloadEngine extends EventEmitter {
                   return;
                 }
 
-                if (!settled && !controller.aborted && item.status === 'downloading') {
+                if (isPaused && pendingBytes <= LOW_WATER_MARK && !settled && !controller.aborted && item.status === 'downloading') {
+                  isPaused = false;
                   res.resume();
                 }
               })
@@ -1824,6 +1866,10 @@ export class DownloadEngine extends EventEmitter {
         } else {
           reject(err);
         }
+      });
+
+      req.on('socket', (sock) => {
+        sock.setNoDelay(true);
       });
 
       req.end();
@@ -2024,6 +2070,30 @@ export class DownloadEngine extends EventEmitter {
     return null;
   }
 
+  public resolveDenoBinary(): string | null {
+    const candidates = [
+      '/opt/homebrew/bin/deno',
+      '/usr/local/bin/deno',
+      path.join(process.env.HOME || '', '.deno/bin/deno'),
+      path.join(process.env.HOME || '', '.bin/deno'),
+      path.join(process.env.HOME || '', 'bin/deno'),
+    ].filter(Boolean);
+
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
+  public resolveJsRuntimesArg(): string | null {
+    const runtimes: string[] = [];
+    const deno = this.resolveDenoBinary();
+    if (deno) runtimes.push(`deno:${deno}`);
+    const node = this.resolveNodeBinary();
+    if (node) runtimes.push(`node:${node}`);
+    return runtimes.length > 0 ? runtimes.join(',') : null;
+  }
+
   public resolveYtDlpBinary(): string | null {
     const candidates = [
       this.settings.ytDlpPath,
@@ -2089,6 +2159,10 @@ export class DownloadEngine extends EventEmitter {
         }
       );
       req.on('error', reject);
+      req.on('socket', (sock) => {
+        sock.setNoDelay(true);
+      });
+
       req.end();
     });
   }

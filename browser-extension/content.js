@@ -382,10 +382,11 @@
     position: 'fixed',
     top: '0',
     left: '0',
-    width: '0',
-    height: '0',
+    width: '100vw',
+    height: '100vh',
     zIndex: '2147483647',
     pointerEvents: 'none',
+    overflow: 'visible',
   });
   document.documentElement.appendChild(host);
 
@@ -403,13 +404,18 @@
     .idm-widget {
       position: fixed;
       z-index: 2147483647;
-      pointer-events: auto;
+      pointer-events: auto !important;
       display: none;
       flex-direction: column;
       align-items: flex-end;
       user-select: none;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
       transition: filter 0.15s ease;
+    }
+
+    .idm-widget,
+    .idm-widget * {
+      pointer-events: auto !important;
     }
 
     .idm-widget.visible {
@@ -1326,7 +1332,19 @@
     window.removeEventListener('pointerup', onWindowPointerUp);
   }
 
-  widget.addEventListener('pointerdown', onWidgetPointerDown);
+  widget.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    onWidgetPointerDown(e);
+  });
+  widget.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+  });
+  widget.addEventListener('mouseup', (e) => {
+    e.stopPropagation();
+  });
+  widget.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
 
   collapseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1366,13 +1384,18 @@
   if (miniDrag) miniDrag.addEventListener('dblclick', resetWidgetPosition);
   if (ddDrag) ddDrag.addEventListener('dblclick', resetWidgetPosition);
 
-  widget.addEventListener('mouseenter', () => {
+  function cancelHideOnHover() {
     isHoveringWidget = true;
     if (hideTimeout) {
       clearTimeout(hideTimeout);
       hideTimeout = null;
     }
-  });
+  }
+
+  widget.addEventListener('mouseenter', cancelHideOnHover);
+  widget.addEventListener('pointerenter', cancelHideOnHover);
+  widget.addEventListener('pointerover', cancelHideOnHover);
+  widget.addEventListener('mousemove', cancelHideOnHover);
 
   widget.addEventListener('mouseleave', () => {
     isHoveringWidget = false;
@@ -1666,7 +1689,13 @@
 
     const discoveredStreams = collectAllPageStreams(videoEl);
     let videoSrc = '';
-    const rawSrc = videoEl.currentSrc || videoEl.src || '';
+    let rawSrc = videoEl.currentSrc || videoEl.src || '';
+    if (!rawSrc) {
+      const srcEl = videoEl.querySelector('source[src]');
+      if (srcEl) {
+        rawSrc = srcEl.src || srcEl.getAttribute('src') || '';
+      }
+    }
     if (
       (rawSrc.startsWith('http://') || rawSrc.startsWith('https://')) &&
       !EXCLUDE_STREAM_REGEX.test(rawSrc)
@@ -1760,7 +1789,7 @@
   }
 
   function getBestActiveVideo() {
-    if (activeVideo && document.contains(activeVideo) && !activeVideo.paused) {
+    if (activeVideo && document.contains(activeVideo)) {
       return activeVideo;
     }
     const videos = Array.from(document.querySelectorAll('video')).filter(
@@ -2000,6 +2029,21 @@
     'mousemove',
     (e) => {
       if (isHoveringWidget || isDropdownOpen) return;
+
+      // Keep widget visible if hovering near or directly over it
+      if (widget.classList.contains('visible')) {
+        const wRect = widget.getBoundingClientRect();
+        if (
+          e.clientX >= wRect.left - 8 &&
+          e.clientX <= wRect.right + 8 &&
+          e.clientY >= wRect.top - 8 &&
+          e.clientY <= wRect.bottom + 8
+        ) {
+          cancelHideOnHover();
+          return;
+        }
+      }
+
       const videos = document.querySelectorAll('video');
       for (const v of videos) {
         bindVideoElement(v);
@@ -2027,6 +2071,9 @@
   window.addEventListener('resize', updateWidgetPosition, { passive: true });
 
   const observer = new MutationObserver(() => {
+    if (!document.documentElement.contains(host)) {
+      document.documentElement.appendChild(host);
+    }
     document.querySelectorAll('video').forEach(bindVideoElement);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });

@@ -414,11 +414,11 @@ export class VideoEngine {
         '--geo-bypass',
       ];
 
-      // YouTube Anti-Bot Shield (Modern player client cascade: default, tv, web)
+      // YouTube Anti-Bot Shield (Modern player client cascade: all modern clients, exclude broken legacy tv client)
       if (this.downloadEngine.getSettings().youtubeAntiBot !== false) {
         args.push(
           '--extractor-args',
-          'youtube:player_client=default,tv,web'
+          'youtube:player_client=all,-tv'
         );
       }
 
@@ -427,9 +427,9 @@ export class VideoEngine {
         args.push('--cookies-from-browser', cookiesBrowser);
       }
 
-      const nodeBin = this.downloadEngine.resolveNodeBinary();
-      if (nodeBin) {
-        args.push('--js-runtimes', `node:${nodeBin}`);
+      const jsRuntimes = this.downloadEngine.resolveJsRuntimesArg();
+      if (jsRuntimes) {
+        args.push('--js-runtimes', jsRuntimes);
       }
 
       const pluginDirs = [
