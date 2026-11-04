@@ -378,22 +378,28 @@
   // Create Shadow DOM host for complete CSS isolation
   const host = document.createElement('div');
   host.id = 'idm-pro-extension-host';
-  Object.assign(host.style, {
-    position: 'fixed',
-    top: '0px',
-    left: '0px',
-    zIndex: '2147483647',
-    pointerEvents: 'auto',
-    display: 'none',
-    overflow: 'visible',
-    width: 'max-content',
-    height: 'max-content',
-    maxWidth: '100vw',
-    maxHeight: '100vh',
-    margin: '0',
-    padding: '0',
-    border: 'none',
-  });
+
+  function applyHostStyles() {
+    host.style.setProperty('position', 'fixed', 'important');
+    host.style.setProperty('z-index', '2147483647', 'important');
+    host.style.setProperty('pointer-events', 'auto', 'important');
+    host.style.setProperty('overflow', 'visible', 'important');
+    host.style.setProperty('width', 'max-content', 'important');
+    host.style.setProperty('height', 'max-content', 'important');
+    host.style.setProperty('margin', '0', 'important');
+    host.style.setProperty('padding', '0', 'important');
+    host.style.setProperty('border', 'none', 'important');
+    host.style.setProperty('background', 'transparent', 'important');
+    host.style.setProperty('transform', 'none', 'important');
+    host.style.setProperty('filter', 'none', 'important');
+    host.style.setProperty('opacity', '1', 'important');
+    host.style.setProperty('visibility', 'visible', 'important');
+  }
+
+  applyHostStyles();
+  host.style.setProperty('top', '0px', 'important');
+  host.style.setProperty('left', '0px', 'important');
+  host.style.setProperty('display', 'none', 'important');
 
   function attachHostToDocument() {
     const parent = document.body || document.documentElement;
@@ -411,7 +417,7 @@
   const styleEl = document.createElement('style');
   styleEl.textContent = `
     :host {
-      all: initial !important;
+      display: block !important;
       position: fixed !important;
       z-index: 2147483647 !important;
       pointer-events: auto !important;
@@ -430,13 +436,13 @@
       position: relative !important;
       z-index: 2147483647 !important;
       pointer-events: auto !important;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      user-select: none;
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
-      transition: filter 0.15s ease;
-      touch-action: manipulation;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      user-select: none !important;
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65)) !important;
+      transition: filter 0.15s ease !important;
+      touch-action: manipulation !important;
     }
 
     .idm-widget,
@@ -1812,11 +1818,14 @@
       rect.top > window.innerHeight - 40
     ) {
       if (!isDropdownOpen && !isDragging) {
-        host.style.display = 'none';
+        host.style.setProperty('display', 'none', 'important');
         widget.classList.remove('visible');
       }
       return;
     }
+
+    applyHostStyles();
+    host.style.setProperty('display', 'block', 'important');
 
     const wWidth = host.offsetWidth || widget.offsetWidth || 220;
     const wHeight = host.offsetHeight || widget.offsetHeight || 36;
@@ -1836,8 +1845,8 @@
     left = Math.max(5, Math.min(left, maxLeft));
     top = Math.max(5, Math.min(top, maxTop));
 
-    host.style.top = `${top}px`;
-    host.style.left = `${left}px`;
+    host.style.setProperty('top', `${top}px`, 'important');
+    host.style.setProperty('left', `${left}px`, 'important');
   }
 
   function showWidgetForVideo(videoEl) {
@@ -1849,7 +1858,8 @@
       activeVideo = videoEl;
       btnLabel.textContent = t('downloadVideo');
     }
-    host.style.display = 'block';
+    applyHostStyles();
+    host.style.setProperty('display', 'block', 'important');
     widget.classList.add('visible');
     requestAnimationFrame(updateWidgetPosition);
   }
@@ -1858,7 +1868,7 @@
     if (hideTimeout) clearTimeout(hideTimeout);
     hideTimeout = setTimeout(() => {
       if (!isHoveringWidget && !isDropdownOpen && !isDragging) {
-        host.style.display = 'none';
+        host.style.setProperty('display', 'none', 'important');
         widget.classList.remove('visible');
       }
     }, 1500);
@@ -1868,7 +1878,7 @@
     isDropdownOpen = false;
     widget.classList.remove('open');
     widget.classList.remove('visible');
-    host.style.display = 'none';
+    host.style.setProperty('display', 'none', 'important');
   }
 
   function getBestActiveVideo() {
@@ -2169,7 +2179,7 @@
         }
       }
 
-      if (widget.classList.contains('visible')) {
+      if (host.style.display !== 'none' || widget.classList.contains('visible')) {
         scheduleHide();
       }
     },
@@ -2184,5 +2194,10 @@
     document.querySelectorAll('video').forEach(bindVideoElement);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  document.querySelectorAll('video').forEach(bindVideoElement);
+  document.querySelectorAll('video').forEach((v) => {
+    bindVideoElement(v);
+    if (!v.paused && v.readyState > 1) {
+      showWidgetForVideo(v);
+    }
+  });
 })();
