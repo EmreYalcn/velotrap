@@ -368,6 +368,13 @@
     };
   }
 
+  // Only render the floating UI overlay in the top-level window.
+  // In sub-frames / iframes, stream sniffing and reporting to background is active,
+  // but we do NOT render a separate floating widget to avoid duplicates, traps, or clicks being blocked.
+  if (window.self !== window.top) {
+    return;
+  }
+
   // Clean up any stale host left from a previous extension reload
   document.querySelectorAll('#idm-pro-extension-host').forEach((oldHost) => {
     try {
@@ -378,53 +385,22 @@
   // Create Shadow DOM host for complete CSS isolation
   const host = document.createElement('div');
   host.id = 'idm-pro-extension-host';
-
-  function applyHostStyles() {
-    host.style.setProperty('position', 'fixed', 'important');
-    host.style.setProperty('z-index', '2147483647', 'important');
-    host.style.setProperty('pointer-events', 'auto', 'important');
-    host.style.setProperty('overflow', 'visible', 'important');
-    host.style.setProperty('width', 'max-content', 'important');
-    host.style.setProperty('height', 'max-content', 'important');
-    host.style.setProperty('margin', '0', 'important');
-    host.style.setProperty('padding', '0', 'important');
-    host.style.setProperty('border', 'none', 'important');
-    host.style.setProperty('background', 'transparent', 'important');
-    host.style.setProperty('transform', 'none', 'important');
-    host.style.setProperty('filter', 'none', 'important');
-    host.style.setProperty('opacity', '1', 'important');
-    host.style.setProperty('visibility', 'visible', 'important');
-  }
-
-  applyHostStyles();
-  host.style.setProperty('top', '0px', 'important');
-  host.style.setProperty('left', '0px', 'important');
-  host.style.setProperty('display', 'none', 'important');
-
-  function attachHostToDocument() {
-    const parent = document.body || document.documentElement;
-    if (parent && host.parentElement !== parent) {
-      parent.appendChild(host);
-    }
-  }
-  attachHostToDocument();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachHostToDocument, { once: true });
-  }
+  Object.assign(host.style, {
+    position: 'fixed',
+    top: '0px',
+    left: '0px',
+    width: '100vw',
+    height: '100vh',
+    zIndex: '2147483647',
+    pointerEvents: 'none',
+    overflow: 'visible',
+  });
+  document.documentElement.appendChild(host);
 
   const shadow = host.attachShadow({ mode: 'open' });
 
   const styleEl = document.createElement('style');
   styleEl.textContent = `
-    :host {
-      display: block !important;
-      position: fixed !important;
-      z-index: 2147483647 !important;
-      pointer-events: auto !important;
-      overflow: visible !important;
-      user-select: none !important;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
@@ -433,16 +409,16 @@
     }
 
     .idm-widget {
-      position: relative !important;
-      z-index: 2147483647 !important;
+      position: fixed;
+      z-index: 2147483647;
       pointer-events: auto !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: flex-end !important;
-      user-select: none !important;
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65)) !important;
-      transition: filter 0.15s ease !important;
-      touch-action: manipulation !important;
+      display: none;
+      flex-direction: column;
+      align-items: flex-end;
+      user-select: none;
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
+      transition: filter 0.15s ease;
+      touch-action: manipulation;
     }
 
     .idm-widget,
@@ -1342,7 +1318,7 @@
     dragStartX = e.clientX;
     dragStartY = e.clientY;
 
-    const rect = host.getBoundingClientRect();
+    const rect = widget.getBoundingClientRect();
     widgetStartLeft = rect.left;
     widgetStartTop = rect.top;
 
@@ -1365,15 +1341,13 @@
       let newLeft = widgetStartLeft + dx;
       let newTop = widgetStartTop + dy;
 
-      const wWidth = host.offsetWidth || widget.offsetWidth || 220;
-      const wHeight = host.offsetHeight || widget.offsetHeight || 36;
-      const maxLeft = Math.max(5, window.innerWidth - wWidth - 5);
-      const maxTop = Math.max(5, window.innerHeight - wHeight - 5);
+      const maxLeft = Math.max(5, window.innerWidth - widget.offsetWidth - 5);
+      const maxTop = Math.max(5, window.innerHeight - widget.offsetHeight - 5);
       newLeft = Math.max(5, Math.min(newLeft, maxLeft));
       newTop = Math.max(5, Math.min(newTop, maxTop));
 
-      host.style.left = `${newLeft}px`;
-      host.style.top = `${newTop}px`;
+      widget.style.left = `${newLeft}px`;
+      widget.style.top = `${newTop}px`;
 
       if (activeVideo && document.contains(activeVideo)) {
         const vRect = activeVideo.getBoundingClientRect();
@@ -1390,21 +1364,6 @@
     window.removeEventListener('pointermove', onWindowPointerMove);
     window.removeEventListener('pointerup', onWindowPointerUp);
   }
-
-  host.addEventListener('pointerdown', (e) => {
-    cancelHideOnHover();
-    e.stopPropagation();
-    onWidgetPointerDown(e);
-  });
-  host.addEventListener('mousedown', (e) => {
-    e.stopPropagation();
-  });
-  host.addEventListener('mouseup', (e) => {
-    e.stopPropagation();
-  });
-  host.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
 
   widget.addEventListener('pointerdown', (e) => {
     cancelHideOnHover();
@@ -1460,17 +1419,6 @@
       hideTimeout = null;
     }
   }
-
-  host.addEventListener('mouseenter', cancelHideOnHover);
-  host.addEventListener('pointerenter', cancelHideOnHover);
-  host.addEventListener('pointerover', cancelHideOnHover);
-  host.addEventListener('mousemove', cancelHideOnHover);
-  host.addEventListener('mouseleave', () => {
-    isHoveringWidget = false;
-    if (!isDropdownOpen && !isDragging) {
-      scheduleHide();
-    }
-  });
 
   widget.addEventListener('mouseenter', cancelHideOnHover);
   widget.addEventListener('pointerenter', cancelHideOnHover);
@@ -1804,6 +1752,48 @@
     };
   }
 
+  function isTargetVideoOrPlayer(el) {
+    if (!el || !document.contains(el)) return false;
+    if (el.tagName === 'VIDEO') return true;
+    if (el.tagName === 'IFRAME') {
+      const src = (el.src || '').toLowerCase();
+      const cls = (el.className || '').toString().toLowerCase();
+      const id = (el.id || '').toLowerCase();
+      const isPlayer = (
+        src.includes('video') ||
+        src.includes('player') ||
+        src.includes('embed') ||
+        src.includes('youtube') ||
+        src.includes('vimeo') ||
+        src.includes('stream') ||
+        src.includes('mux') ||
+        cls.includes('video') ||
+        cls.includes('player') ||
+        id.includes('video') ||
+        id.includes('player')
+      );
+      if (isPlayer) return true;
+      const r = el.getBoundingClientRect();
+      if (r.width >= 240 && r.height >= 140 && r.width <= window.innerWidth && r.height <= window.innerHeight) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function getMediaTargets() {
+    const list = [];
+    document.querySelectorAll('video').forEach((v) => {
+      if (document.contains(v)) list.push(v);
+    });
+    document.querySelectorAll('iframe').forEach((ifr) => {
+      if (document.contains(ifr) && isTargetVideoOrPlayer(ifr)) {
+        list.push(ifr);
+      }
+    });
+    return list;
+  }
+
   function updateWidgetPosition() {
     if (!activeVideo || !document.contains(activeVideo)) {
       hideWidgetImmediate();
@@ -1818,17 +1808,13 @@
       rect.top > window.innerHeight - 40
     ) {
       if (!isDropdownOpen && !isDragging) {
-        host.style.setProperty('display', 'none', 'important');
         widget.classList.remove('visible');
       }
       return;
     }
 
-    applyHostStyles();
-    host.style.setProperty('display', 'block', 'important');
-
-    const wWidth = host.offsetWidth || widget.offsetWidth || 220;
-    const wHeight = host.offsetHeight || widget.offsetHeight || 36;
+    const wWidth = widget.offsetWidth || 220;
+    const wHeight = widget.offsetHeight || 36;
 
     let top, left;
     if (customOffsetX !== null && customOffsetY !== null) {
@@ -1845,8 +1831,8 @@
     left = Math.max(5, Math.min(left, maxLeft));
     top = Math.max(5, Math.min(top, maxTop));
 
-    host.style.setProperty('top', `${top}px`, 'important');
-    host.style.setProperty('left', `${left}px`, 'important');
+    widget.style.top = `${top}px`;
+    widget.style.left = `${left}px`;
   }
 
   function showWidgetForVideo(videoEl) {
@@ -1858,8 +1844,6 @@
       activeVideo = videoEl;
       btnLabel.textContent = t('downloadVideo');
     }
-    applyHostStyles();
-    host.style.setProperty('display', 'block', 'important');
     widget.classList.add('visible');
     requestAnimationFrame(updateWidgetPosition);
   }
@@ -1868,7 +1852,6 @@
     if (hideTimeout) clearTimeout(hideTimeout);
     hideTimeout = setTimeout(() => {
       if (!isHoveringWidget && !isDropdownOpen && !isDragging) {
-        host.style.setProperty('display', 'none', 'important');
         widget.classList.remove('visible');
       }
     }, 1500);
@@ -1878,19 +1861,18 @@
     isDropdownOpen = false;
     widget.classList.remove('open');
     widget.classList.remove('visible');
-    host.style.setProperty('display', 'none', 'important');
   }
 
   function getBestActiveVideo() {
     if (activeVideo && document.contains(activeVideo)) {
       return activeVideo;
     }
-    const videos = Array.from(document.querySelectorAll('video')).filter(
+    const targets = getMediaTargets().filter(
       (v) => document.contains(v) && v.getBoundingClientRect().width >= 120
     );
-    const playing = videos.find((v) => !v.paused && v.readyState > 1);
+    const playing = targets.find((v) => v.tagName === 'VIDEO' && !v.paused && v.readyState > 1);
     if (playing) return playing;
-    return activeVideo || videos[0] || null;
+    return activeVideo || targets[0] || null;
   }
 
   // Direct 1-click MP3 button right on the floating bar!
@@ -2077,7 +2059,7 @@
 
   document.addEventListener('click', (e) => {
     if (isDropdownOpen) {
-      if (e && e.composedPath && e.composedPath().includes(host)) {
+      if (e && e.composedPath && e.composedPath().includes(widget)) {
         return;
       }
       if (!isHoveringWidget) {
@@ -2088,9 +2070,9 @@
     }
   });
 
-  function isCursorNearWidget(clientX, clientY, margin = 40) {
-    if (host.style.display === 'none') return false;
-    const wRect = host.getBoundingClientRect();
+  function isCursorNearWidget(clientX, clientY, margin = 30) {
+    if (!widget.classList.contains('visible')) return false;
+    const wRect = widget.getBoundingClientRect();
     if (!wRect || (wRect.width === 0 && wRect.height === 0)) return false;
     return (
       clientX >= wRect.left - margin &&
@@ -2101,7 +2083,7 @@
   }
 
   function bindVideoElement(videoEl) {
-    if (boundVideos.has(videoEl)) return;
+    if (!videoEl || boundVideos.has(videoEl)) return;
     boundVideos.add(videoEl);
 
     videoEl.addEventListener('mouseenter', () => {
@@ -2116,15 +2098,17 @@
       }
     });
 
-    videoEl.addEventListener('play', () => {
-      if (!isDropdownOpen) {
-        showWidgetForVideo(videoEl);
-      }
-    });
+    if (typeof videoEl.addEventListener === 'function') {
+      videoEl.addEventListener('play', () => {
+        if (!isDropdownOpen) {
+          showWidgetForVideo(videoEl);
+        }
+      });
+    }
 
     videoEl.addEventListener('mouseleave', (e) => {
       if (isDropdownOpen || isHoveringWidget) return;
-      if (isCursorNearWidget(e.clientX, e.clientY, 40)) {
+      if (isCursorNearWidget(e.clientX, e.clientY, 30)) {
         cancelHideOnHover();
         return;
       }
@@ -2135,51 +2119,32 @@
   document.addEventListener(
     'mousemove',
     (e) => {
-      if (isHoveringWidget || isDropdownOpen) return;
+      if (isHoveringWidget || isDropdownOpen || isDragging) return;
 
       // Keep widget visible if hovering near or directly over it
-      if (isCursorNearWidget(e.clientX, e.clientY, 40)) {
+      if (isCursorNearWidget(e.clientX, e.clientY, 30)) {
         cancelHideOnHover();
         return;
       }
 
-      const videos = document.querySelectorAll('video');
-      for (const v of videos) {
-        bindVideoElement(v);
-        const r = v.getBoundingClientRect();
-        const parent = v.parentElement;
-        const pr = parent ? parent.getBoundingClientRect() : r;
-
-        const inVideo = (
+      const targets = getMediaTargets();
+      for (const t of targets) {
+        bindVideoElement(t);
+        const r = t.getBoundingClientRect();
+        if (
           r.width >= 120 &&
           r.height >= 80 &&
-          e.clientX >= r.left - 12 &&
-          e.clientX <= r.right + 12 &&
-          e.clientY >= r.top - 12 &&
-          e.clientY <= r.bottom + 12
-        );
-
-        const inParent = (
-          parent &&
-          parent !== document.body &&
-          parent !== document.documentElement &&
-          pr.width >= 120 &&
-          pr.height >= 80 &&
-          pr.width <= window.innerWidth &&
-          pr.height <= window.innerHeight &&
-          e.clientX >= pr.left &&
-          e.clientX <= pr.right &&
-          e.clientY >= pr.top &&
-          e.clientY <= pr.bottom
-        );
-
-        if (inVideo || inParent) {
-          showWidgetForVideo(v);
+          e.clientX >= r.left - 8 &&
+          e.clientX <= r.right + 8 &&
+          e.clientY >= r.top - 8 &&
+          e.clientY <= r.bottom + 8
+        ) {
+          showWidgetForVideo(t);
           return;
         }
       }
 
-      if (host.style.display !== 'none' || widget.classList.contains('visible')) {
+      if (widget.classList.contains('visible')) {
         scheduleHide();
       }
     },
@@ -2191,12 +2156,12 @@
 
   const observer = new MutationObserver(() => {
     attachHostToDocument();
-    document.querySelectorAll('video').forEach(bindVideoElement);
+    getMediaTargets().forEach(bindVideoElement);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  document.querySelectorAll('video').forEach((v) => {
+  getMediaTargets().forEach((v) => {
     bindVideoElement(v);
-    if (!v.paused && v.readyState > 1) {
+    if (v.tagName === 'VIDEO' && !v.paused && v.readyState > 1) {
       showWidgetForVideo(v);
     }
   });
