@@ -382,18 +382,40 @@
     position: 'fixed',
     top: '0',
     left: '0',
-    width: '100vw',
-    height: '100vh',
+    width: '0px',
+    height: '0px',
     zIndex: '2147483647',
     pointerEvents: 'none',
     overflow: 'visible',
   });
-  document.documentElement.appendChild(host);
+
+  function attachHostToDocument() {
+    const parent = document.body || document.documentElement;
+    if (parent && host.parentElement !== parent) {
+      parent.appendChild(host);
+    }
+  }
+  attachHostToDocument();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachHostToDocument, { once: true });
+  }
 
   const shadow = host.attachShadow({ mode: 'open' });
 
   const styleEl = document.createElement('style');
   styleEl.textContent = `
+    :host {
+      all: initial !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 0 !important;
+      height: 0 !important;
+      pointer-events: none !important;
+      z-index: 2147483647 !important;
+      overflow: visible !important;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -403,7 +425,7 @@
 
     .idm-widget {
       position: fixed;
-      z-index: 2147483647;
+      z-index: 2147483647 !important;
       pointer-events: auto !important;
       display: none;
       flex-direction: column;
@@ -411,6 +433,7 @@
       user-select: none;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
       transition: filter 0.15s ease;
+      touch-action: manipulation;
     }
 
     .idm-widget,
@@ -1180,6 +1203,41 @@
     });
   }
 
+  function bindAction(el, handler) {
+    if (!el) return;
+    let lastActionTime = 0;
+
+    const execute = (e) => {
+      const now = Date.now();
+      if (now - lastActionTime < 320) return;
+      lastActionTime = now;
+      if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      }
+      handler(e);
+    };
+
+    el.addEventListener('click', execute, { capture: true });
+    el.addEventListener('pointerup', (e) => {
+      if (e.button === 0 && !dragHasMoved) {
+        execute(e);
+      }
+    }, { capture: true });
+    el.addEventListener('touchend', (e) => {
+      if (!dragHasMoved) {
+        execute(e);
+      }
+    }, { capture: true });
+
+    el.addEventListener('pointerdown', (e) => {
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }, { capture: true });
+    el.addEventListener('mousedown', (e) => {
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }, { capture: true });
+  }
+
   function setMode(mode) {
     activeMode = mode;
     if (mode === 'video') {
@@ -1194,34 +1252,28 @@
     }
   }
 
-  tabVideoBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+  bindAction(tabVideoBtn, () => {
     setMode('video');
   });
 
-  tabAudioBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+  bindAction(tabAudioBtn, () => {
     setMode('audio');
   });
 
   connPills.forEach((pill) => {
-    pill.addEventListener('click', (e) => {
-      e.stopPropagation();
+    bindAction(pill, () => {
       selectedConnections = Number(pill.dataset.conn) || 16;
       connPills.forEach((p) => p.classList.remove('active'));
       pill.classList.add('active');
     });
   });
 
-  openAppBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+  bindAction(openAppBtn, () => {
     sendIdmMessage({ type: 'FOCUS_IDM_APP' });
   });
 
   if (clipToggleBtn) {
-    clipToggleBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    bindAction(clipToggleBtn, () => {
       isClipActive = !isClipActive;
       if (clipInputs) clipInputs.style.display = isClipActive ? 'flex' : 'none';
       if (clipBadge) {
@@ -1239,9 +1291,7 @@
   }
 
   if (clipSetStartBtn) {
-    clipSetStartBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    bindAction(clipSetStartBtn, () => {
       if (activeVideo) {
         clipStartInput.value = formatCurrentTime(
           activeVideo.currentTime,
@@ -1252,9 +1302,7 @@
   }
 
   if (clipSetEndBtn) {
-    clipSetEndBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    bindAction(clipSetEndBtn, () => {
       if (activeVideo) {
         clipEndInput.value = formatCurrentTime(
           activeVideo.currentTime,
@@ -1346,9 +1394,7 @@
     e.stopPropagation();
   });
 
-  collapseBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+  bindAction(collapseBtn, () => {
     isCollapsed = true;
     isDropdownOpen = false;
     widget.classList.remove('open');
@@ -1356,25 +1402,21 @@
     requestAnimationFrame(updateWidgetPosition);
   });
 
-  miniPill.addEventListener('click', (e) => {
+  bindAction(miniPill, () => {
     if (dragHasMoved) return;
-    e.stopPropagation();
-    e.preventDefault();
     isCollapsed = false;
     widget.classList.remove('collapsed');
     requestAnimationFrame(updateWidgetPosition);
   });
 
-  ddCloseBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+  bindAction(ddCloseBtn, () => {
     isDropdownOpen = false;
     widget.classList.remove('open');
     requestAnimationFrame(updateWidgetPosition);
   });
 
   function resetWidgetPosition(e) {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     customOffsetX = null;
     customOffsetY = null;
     requestAnimationFrame(updateWidgetPosition);
@@ -1396,6 +1438,8 @@
   widget.addEventListener('pointerenter', cancelHideOnHover);
   widget.addEventListener('pointerover', cancelHideOnHover);
   widget.addEventListener('mousemove', cancelHideOnHover);
+  widget.addEventListener('pointerdown', cancelHideOnHover, { capture: true });
+  widget.addEventListener('touchstart', cancelHideOnHover, { passive: true, capture: true });
 
   widget.addEventListener('mouseleave', () => {
     isHoveringWidget = false;
@@ -1779,7 +1823,7 @@
       if (!isHoveringWidget && !isDropdownOpen && !isDragging) {
         widget.classList.remove('visible');
       }
-    }, 600);
+    }, 1500);
   }
 
   function hideWidgetImmediate() {
@@ -1801,9 +1845,7 @@
   }
 
   // Direct 1-click MP3 button right on the floating bar!
-  quickMp3Btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  bindAction(quickMp3Btn, () => {
     const vid = getBestActiveVideo();
     if (!vid) return;
     activeVideo = vid;
@@ -1814,10 +1856,7 @@
   });
 
   // Clicking "Videoyu İndir" opens the dropdown INSTANTLY (0ms delay!)
-  triggerBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  bindAction(triggerBtn, () => {
     const vid = getBestActiveVideo();
     if (!vid) return;
     activeVideo = vid;
@@ -1903,9 +1942,7 @@
         <span class="fmt-size">${sizeLabel}</span>
       `;
 
-      btn.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
+      bindAction(btn, () => {
         triggerFormatDownload(analysis, fmt, ctx);
       });
 
@@ -1996,6 +2033,17 @@
     }
   });
 
+  function isCursorNearWidget(clientX, clientY, margin = 40) {
+    if (!widget.classList.contains('visible')) return false;
+    const wRect = widget.getBoundingClientRect();
+    return (
+      clientX >= wRect.left - margin &&
+      clientX <= wRect.right + margin &&
+      clientY >= wRect.top - margin &&
+      clientY <= wRect.bottom + margin
+    );
+  }
+
   function bindVideoElement(videoEl) {
     if (boundVideos.has(videoEl)) return;
     boundVideos.add(videoEl);
@@ -2018,10 +2066,13 @@
       }
     });
 
-    videoEl.addEventListener('mouseleave', () => {
-      if (!isDropdownOpen) {
-        scheduleHide();
+    videoEl.addEventListener('mouseleave', (e) => {
+      if (isDropdownOpen || isHoveringWidget) return;
+      if (isCursorNearWidget(e.clientX, e.clientY, 40)) {
+        cancelHideOnHover();
+        return;
       }
+      scheduleHide();
     });
   }
 
@@ -2031,35 +2082,47 @@
       if (isHoveringWidget || isDropdownOpen) return;
 
       // Keep widget visible if hovering near or directly over it
-      if (widget.classList.contains('visible')) {
-        const wRect = widget.getBoundingClientRect();
-        if (
-          e.clientX >= wRect.left - 8 &&
-          e.clientX <= wRect.right + 8 &&
-          e.clientY >= wRect.top - 8 &&
-          e.clientY <= wRect.bottom + 8
-        ) {
-          cancelHideOnHover();
-          return;
-        }
+      if (isCursorNearWidget(e.clientX, e.clientY, 40)) {
+        cancelHideOnHover();
+        return;
       }
 
       const videos = document.querySelectorAll('video');
       for (const v of videos) {
         bindVideoElement(v);
         const r = v.getBoundingClientRect();
-        if (
+        const parent = v.parentElement;
+        const pr = parent ? parent.getBoundingClientRect() : r;
+
+        const inVideo = (
           r.width >= 120 &&
           r.height >= 80 &&
-          e.clientX >= r.left &&
-          e.clientX <= r.right &&
-          e.clientY >= r.top &&
-          e.clientY <= r.bottom
-        ) {
+          e.clientX >= r.left - 12 &&
+          e.clientX <= r.right + 12 &&
+          e.clientY >= r.top - 12 &&
+          e.clientY <= r.bottom + 12
+        );
+
+        const inParent = (
+          parent &&
+          parent !== document.body &&
+          parent !== document.documentElement &&
+          pr.width >= 120 &&
+          pr.height >= 80 &&
+          pr.width <= window.innerWidth &&
+          pr.height <= window.innerHeight &&
+          e.clientX >= pr.left &&
+          e.clientX <= pr.right &&
+          e.clientY >= pr.top &&
+          e.clientY <= pr.bottom
+        );
+
+        if (inVideo || inParent) {
           showWidgetForVideo(v);
           return;
         }
       }
+
       if (widget.classList.contains('visible')) {
         scheduleHide();
       }
@@ -2071,9 +2134,7 @@
   window.addEventListener('resize', updateWidgetPosition, { passive: true });
 
   const observer = new MutationObserver(() => {
-    if (!document.documentElement.contains(host)) {
-      document.documentElement.appendChild(host);
-    }
+    attachHostToDocument();
     document.querySelectorAll('video').forEach(bindVideoElement);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
