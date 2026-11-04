@@ -1208,13 +1208,13 @@
     let lastActionTime = 0;
 
     const execute = (e) => {
-      const now = Date.now();
-      if (now - lastActionTime < 320) return;
-      lastActionTime = now;
       if (e) {
         if (typeof e.preventDefault === 'function') e.preventDefault();
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
       }
+      const now = Date.now();
+      if (now - lastActionTime < 320) return;
+      lastActionTime = now;
       handler(e);
     };
 
@@ -2026,10 +2026,16 @@
     );
   }
 
-  document.addEventListener('click', () => {
-    if (isDropdownOpen && !isHoveringWidget) {
-      isDropdownOpen = false;
-      widget.classList.remove('open');
+  document.addEventListener('click', (e) => {
+    if (isDropdownOpen) {
+      if (e && e.composedPath && e.composedPath().includes(host)) {
+        return;
+      }
+      if (!isHoveringWidget) {
+        isDropdownOpen = false;
+        widget.classList.remove('open');
+        requestAnimationFrame(updateWidgetPosition);
+      }
     }
   });
 
