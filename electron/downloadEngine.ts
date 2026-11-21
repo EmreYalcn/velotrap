@@ -12,6 +12,7 @@ import {
   DownloadItem,
   EngineSettings,
   SegmentState,
+  toVimeoPlayerUrl,
 } from './types';
 
 const DEFAULT_USER_AGENT =
@@ -659,11 +660,22 @@ export class DownloadEngine extends EventEmitter {
     // 2. Any fallback stream URLs (.m3u8 / .mp4 / TikTok CDN) captured by the Chrome Extension
     const rawCandidates = [resolvedItemUrl, ...(item.fallbackStreamUrls || [])];
     const candidateUrls: string[] = [];
+    const hasBrowserCookies =
+      Boolean(this.settings.youtubeBrowserCookies) && this.settings.youtubeBrowserCookies !== 'none';
     for (const u of rawCandidates) {
       if (!u || candidateUrls.includes(u)) continue;
       if (EXCLUDE_STREAM_REGEX.test(u)) continue;
       if (u.includes('googlevideo.com/videoplayback') || /\.(ts|m4s)(\?|$)/i.test(u)) continue;
+
+      const vimeoPlayerUrl = toVimeoPlayerUrl(u);
+      // Vimeo web client now requires login cookies; try player.vimeo.com first unless cookies are configured
+      if (vimeoPlayerUrl && !hasBrowserCookies && !candidateUrls.includes(vimeoPlayerUrl)) {
+        candidateUrls.push(vimeoPlayerUrl);
+      }
       candidateUrls.push(u);
+      if (vimeoPlayerUrl && hasBrowserCookies && !candidateUrls.includes(vimeoPlayerUrl)) {
+        candidateUrls.push(vimeoPlayerUrl);
+      }
     }
 
     let downloadedTempFile: string | null = null;
@@ -692,8 +704,9 @@ export class DownloadEngine extends EventEmitter {
 
           if (
             !/youtube\.com|youtu\.be|x\.com|twitter\.com/i.test(targetUrl) &&
-            item.headers &&
-            Object.keys(item.headers).length > 0
+            ((item.headers && Object.keys(item.headers).length > 0) ||
+              Boolean(item.pageUrl) ||
+              /vimeo\.com/i.test(targetUrl))
           ) {
             try {
               downloadedTempFile = await this.executeYtDlpToWorkDir(
@@ -1044,6 +1057,8 @@ export class DownloadEngine extends EventEmitter {
         };
         if (item.pageUrl && !headers['Referer']) {
           headers['Referer'] = item.pageUrl;
+        } else if (/vimeo\.com/i.test(targetUrl) && !headers['Referer']) {
+          headers['Referer'] = 'https://vimeo.com/';
         }
 
         for (const [k, v] of Object.entries(headers)) {

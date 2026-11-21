@@ -6,7 +6,7 @@ import * as https from 'https';
 import { URL } from 'url';
 import { spawn } from 'child_process';
 import { DownloadEngine } from './downloadEngine';
-import { VideoAnalysisResult, VideoFormatOption } from './types';
+import { toVimeoPlayerUrl, VideoAnalysisResult, VideoFormatOption } from './types';
 
 const DEFAULT_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -459,12 +459,24 @@ export class VideoEngine {
 
       proc.on('close', (code) => {
         if (code !== 0 || !stdout.trim()) {
+          const vimeoPlayerUrl = toVimeoPlayerUrl(targetUrl);
+          if (vimeoPlayerUrl) {
+            const vimeoHeaders = { Referer: targetUrl, ...headers };
+            this.analyzeWithYtDlp(ytDlpBin, vimeoPlayerUrl, vimeoHeaders, true)
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
           if (
             !useCustomHeaders &&
-            Object.keys(headers).length > 0 &&
+            (Object.keys(headers).length > 0 || /player\.vimeo\.com/i.test(targetUrl)) &&
             !/youtube\.com|youtu\.be|x\.com|twitter\.com/i.test(targetUrl)
           ) {
-            this.analyzeWithYtDlp(ytDlpBin, targetUrl, headers, true)
+            const retryHeaders =
+              /player\.vimeo\.com/i.test(targetUrl) && !headers.Referer && !headers.referer
+                ? { Referer: 'https://vimeo.com/', ...headers }
+                : headers;
+            this.analyzeWithYtDlp(ytDlpBin, targetUrl, retryHeaders, true)
               .then(resolve)
               .catch(reject);
             return;

@@ -1747,7 +1747,7 @@
     const discoveredStreams = collectAllPageStreams(videoEl);
     let videoSrc = '';
     let rawSrc = videoEl.currentSrc || videoEl.src || '';
-    if (!rawSrc) {
+    if (!rawSrc && videoEl.querySelector) {
       const srcEl = videoEl.querySelector('source[src]');
       if (srcEl) {
         rawSrc = srcEl.src || srcEl.getAttribute('src') || '';
@@ -1758,6 +1758,14 @@
       !EXCLUDE_STREAM_REGEX.test(rawSrc)
     ) {
       videoSrc = rawSrc;
+      if (
+        videoEl.tagName === 'IFRAME' &&
+        /player\.vimeo\.com\/video\/|youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|dailymotion\.com\/embed\//i.test(
+          rawSrc
+        )
+      ) {
+        targetUrl = rawSrc;
+      }
     } else if (discoveredStreams.length > 0) {
       const preferredStream = discoveredStreams.find(
         (u) =>

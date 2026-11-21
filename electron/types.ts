@@ -112,3 +112,36 @@ export interface EngineSettings {
   youtubeAntiBot?: boolean;
   youtubeBrowserCookies?: 'none' | 'chrome' | 'safari' | 'firefox' | 'brave';
 }
+
+/**
+ * Converts a standard vimeo.com/<id>[/<hash>] page URL to its player.vimeo.com/video/<id> embed URL.
+ * Returns null if the URL is not a convertible vimeo.com video page.
+ */
+export function toVimeoPlayerUrl(rawUrl: string): string | null {
+  try {
+    const u = new URL(rawUrl);
+    const host = u.hostname.toLowerCase();
+    if (host === 'player.vimeo.com' || !host.endsWith('vimeo.com')) return null;
+
+    const parts = u.pathname.split('/').filter(Boolean);
+    let videoId = '';
+    let hash = u.searchParams.get('h') || '';
+
+    for (let i = 0; i < parts.length; i++) {
+      if (/^\d{5,}$/.test(parts[i])) {
+        videoId = parts[i];
+        if (!hash && parts[i + 1] && /^[a-f0-9]{6,}$/i.test(parts[i + 1])) {
+          hash = parts[i + 1];
+        }
+        break;
+      }
+    }
+
+    if (!videoId) return null;
+    return hash
+      ? `https://player.vimeo.com/video/${videoId}?h=${hash}`
+      : `https://player.vimeo.com/video/${videoId}`;
+  } catch {
+    return null;
+  }
+}
