@@ -726,6 +726,29 @@ export class DownloadEngine extends EventEmitter {
           }
 
           if (
+            !downloadedTempFile &&
+            /403|forbidden|cloudflare|impersonate/i.test(lastError) &&
+            !/youtube\.com|youtu\.be|x\.com|twitter\.com/i.test(targetUrl)
+          ) {
+            try {
+              downloadedTempFile = await this.executeYtDlpToWorkDir(
+                ytDlpBin,
+                item,
+                targetUrl,
+                workDir,
+                isAudioRequest,
+                true,
+                true
+              );
+              if (downloadedTempFile && fs.existsSync(downloadedTempFile)) {
+                break;
+              }
+            } catch (err3: any) {
+              lastError = err3?.message || lastError;
+            }
+          }
+
+          if (
             i === 0 &&
             !/youtube\.com|youtu\.be|x\.com|twitter\.com|tiktok\.com|instagram\.com/i.test(
               targetUrl
@@ -903,7 +926,8 @@ export class DownloadEngine extends EventEmitter {
     targetUrl: string,
     workDir: string,
     isAudioRequest: boolean,
-    useCustomHeaders = false
+    useCustomHeaders = false,
+    useImpersonate = false
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       // Clean any previous attempt files in workDir
@@ -947,6 +971,9 @@ export class DownloadEngine extends EventEmitter {
         '-o',
         outTemplate,
       ];
+      if (useImpersonate) {
+        args.push('--impersonate', 'chrome');
+      }
 
       const ffmpegBin = this.resolveFfmpegBinary();
       if (ffmpegBin) {

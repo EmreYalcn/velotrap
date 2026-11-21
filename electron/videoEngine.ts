@@ -403,7 +403,8 @@ export class VideoEngine {
     ytDlpBin: string,
     targetUrl: string,
     headers: Record<string, string>,
-    useCustomHeaders = false
+    useCustomHeaders = false,
+    useImpersonate = false
   ): Promise<VideoAnalysisResult> {
     return new Promise((resolve, reject) => {
       const args = [
@@ -413,6 +414,9 @@ export class VideoEngine {
         '--no-check-certificates',
         '--geo-bypass',
       ];
+      if (useImpersonate) {
+        args.push('--impersonate', 'chrome');
+      }
 
       // YouTube Anti-Bot Shield (Modern player client cascade: all modern clients, exclude broken legacy tv client)
       if (this.downloadEngine.getSettings().youtubeAntiBot !== false) {
@@ -476,7 +480,17 @@ export class VideoEngine {
               /player\.vimeo\.com/i.test(targetUrl) && !headers.Referer && !headers.referer
                 ? { Referer: 'https://vimeo.com/', ...headers }
                 : headers;
-            this.analyzeWithYtDlp(ytDlpBin, targetUrl, retryHeaders, true)
+            this.analyzeWithYtDlp(ytDlpBin, targetUrl, retryHeaders, true, useImpersonate)
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+          if (
+            !useImpersonate &&
+            /403|forbidden|cloudflare|impersonate/i.test(stderr) &&
+            !/youtube\.com|youtu\.be|x\.com|twitter\.com/i.test(targetUrl)
+          ) {
+            this.analyzeWithYtDlp(ytDlpBin, targetUrl, headers, useCustomHeaders, true)
               .then(resolve)
               .catch(reject);
             return;
